@@ -1,5 +1,16 @@
 # STAB-Admin2
-Pipeline code for development of subnational estimates of U5MR using SUMMER
+Pipeline code for development of subnational estimates of U5MR using **SUMMER**.
+[**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
+
+# Example data
+  * Country-specific data
+    * Senegal 2005 DHS Births Recode (STATA)
+    * Senegal 2005 DHS Geographic Dataset (FLAT ASCII/reads in as SpatialPointsDataFrame)
+    * Senegal GADM Polygon files (reads in as SpatialPolygonsDataFrame)
+  * Meta-data
+    * SurveyNum.csv
+    * SurveyList_BR_GE.csv
+    * CountryList.csv or []()
 
 # .R Files
 
