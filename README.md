@@ -6,7 +6,7 @@ Pipeline code for development of subnational estimates of U5MR using SUMMER
   1. **DataProcessing.R**
      *  Combines DHS Births Recode files (\*.dta), DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx), and (usually) GADM polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) into single data.frame called **mod.dat** saved in file CountryName_cluster_dat.rda for all subsequent analysis
      *  Associated **SUMMER** functions: 
-        - getBirths(): 365--370
+        - `getBirths()`: 365--370
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of U5MR, adjusts for HIV when appropriate
      *  Associated **SUMMER** functions: 
