@@ -33,10 +33,14 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
            - Section: Create adjacency matrices
            - Lines: 250-254, 261-265, 273-275, 280-282
            - Output: CountryName_Amat.rda 
-        - `admin1.names`, `admin2.names`:
+        - `admin1.names`, `admin2.names`: `data.frames` keys matching GADM area name strings to internal (unique) area name strings
           - Section: Create adjacency matrices 
           - Lines: 255-256, 266-267, 276-278, 283-285
           - Output: CountryName_Amat_Names.rda
+        - `mod.dat`: `data.frame` that summarizes number of deaths and agemonths for each cluster and contains GPS location of clusters and Admin area assignments
+          - Sections:
+          - Lines:
+          - Output: CountryName_cluster_dat.rda
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
      *  Associated **SUMMER** functions: 
