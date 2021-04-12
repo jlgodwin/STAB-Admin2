@@ -8,11 +8,12 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
 
 # Example data
   * Country-specific data
-    * Senegal 2005 DHS Births Recode (STATA)
-    * Senegal 2005 DHS Geographic Dataset (FLAT ASCII/reads in as SpatialPointsDataFrame)
-    * Senegal GADM Polygon files (reads in as SpatialPolygonsDataFrame)
+    * Togo 2013-14, 1998 DHS Births Recode (STATA)
+    * Togo 2013-14, 1998 DHS Geographic Dataset (FLAT ASCII/reads in as SpatialPointsDataFrame)
+    * Togo GADM Polygon files (reads in as SpatialPolygonsDataFrame)
   * Meta-data
     * SurveyNum.csv
+      - Contains CountryName, 
     * SurveyList_BR_GE.csv
     * CountryList.csv or [**Command Center: Country List**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
     * SurveyInfo.csv or [**Command Center: Survey Info**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=1656161984)
