@@ -1,6 +1,8 @@
 # STAB-Admin2
+
 Pipeline code for development of subnational estimates of U5MR using **SUMMER**.
-[**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
+Click here for the [**SPACE STATION**](http://faculty.washington.edu/jonno/space-station.html)
+Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
 
 # Example data
   * Country-specific data
@@ -10,14 +12,15 @@ Pipeline code for development of subnational estimates of U5MR using **SUMMER**.
   * Meta-data
     * SurveyNum.csv
     * SurveyList_BR_GE.csv
-    * CountryList.csv or []()
+    * CountryList.csv or [**Command Center: Country List**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
+    * SurveyInfo.csv or [**Command Center: Survey Info**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=1656161984)
 
 # .R Files
 
   1. **DataProcessing.R**
      *  Combines DHS Births Recode files (\*.dta), DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx), and (usually) GADM polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) into single data.frame called **mod.dat** saved in file CountryName_cluster_dat.rda for all subsequent analysis
      *  Associated **SUMMER** functions: 
-        - `getBirths()`: 365--370
+        - `getBirths()`: 365-370
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
      *  Associated **SUMMER** functions: 
