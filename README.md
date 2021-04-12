@@ -27,7 +27,7 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
         - DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx),
         - GADM (usually) polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) 
      *  Associated **SUMMER** functions: 
-        - `getBirths()`: 365-370 (
+        - `getBirths()`: 365-370 (Section: Load Data)
      *  Products:
         - `admin1.mat`, `admin2.mat`: adjacency matrices of subnational polygons for future use in `SUMMER` and nested `INLA` functions
            - Section: Create adjacency matrices
@@ -38,8 +38,8 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
           - Lines: 255-256, 266-267, 276-278, 283-285
           - Output: CountryName_Amat_Names.rda
         - `mod.dat`: `data.frame` that summarizes number of deaths and agemonths for each cluster and contains GPS location of clusters and Admin area assignments
-          - Sections:
-          - Lines:
+          - Sections: Combine survey frames, Check frame, Save frame 
+          - Lines: 545, 547, 554, 558-560, 564-565, 569-571
           - Output: CountryName_cluster_dat.rda
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
