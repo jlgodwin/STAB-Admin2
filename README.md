@@ -1,6 +1,6 @@
-# STAB-Admin2
+# STAB Admin 2 U5MR Pipeline
 
-Pipeline code for development of subnational estimates of U5MR using **SUMMER**.
+Pipeline code for development of subnational estimates of U5MR using [`SUMMER`](https://github.com/richardli/SUMMER).
 
 Click here for the [**SPACE STATION**](http://faculty.washington.edu/jonno/space-station.html)
 
@@ -9,21 +9,34 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
 # Example data
   * Country-specific data
     * Togo 2013-14, 1998 DHS Births Recode (STATA)
-    * Togo 2013-14, 1998 DHS Geographic Dataset (FLAT ASCII/reads in as SpatialPointsDataFrame)
-    * Togo GADM Polygon files (reads in as SpatialPolygonsDataFrame)
+    * Togo 2013-14, 1998 DHS Geographic Dataset (FLAT ASCII/reads in as `SpatialPointsDataFrame`)
+    * Togo GADM Polygon files (reads in as `SpatialPolygonsDataFrame`)
   * Meta-data
     * SurveyNum.csv
-      - Contains CountryName, 
+      - Contains CountryName, unique DHS survey number, DHS survey name key
     * SurveyList_BR_GE.csv
+      - Contains SO MUCH INFO including last upload to [DHS](https://www.dhsprogram.com), 
     * CountryList.csv or [**Command Center: Country List**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
     * SurveyInfo.csv or [**Command Center: Survey Info**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=1656161984)
 
 # .R Files
 
   1. **DataProcessing.R**
-     *  Combines DHS Births Recode files (\*.dta), DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx), and (usually) GADM polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) into single data.frame called **mod.dat** saved in file CountryName_cluster_dat.rda for all subsequent analysis
+     *  Combines
+        - DHS Births Recode files (\*.dta), 
+        - DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx),
+        - GADM (usually) polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) 
      *  Associated **SUMMER** functions: 
-        - `getBirths()`: 365-370
+        - `getBirths()`: 365-370 (
+     *  Products:
+        - `admin1.mat`, `admin2.mat`: adjacency matrices of subnational polygons for future use in `SUMMER` and nested `INLA` functions
+           - Section: Create adjacency matrices
+           - Lines: 250-254, 261-265, 273-275, 280-282
+           - Output: CountryName_Amat.rda 
+        - `admin1.names`, `admin2.names`:
+          - Section: Create adjacency matrices 
+          - Lines: 255-256, 266-267, 276-278, 283-285
+          - Output: CountryName_Amat_Names.rda
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
      *  Associated **SUMMER** functions: 
