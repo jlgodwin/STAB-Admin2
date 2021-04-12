@@ -1,0 +1,53 @@
+Country,folderName,gadmCode,dhsCode,nSurvey,quality,DataProcessing,HIV,DirectEstimates,SmoothedDirect,Population,BetaBinomial,DropboxLink
+Angola,Angola,AGO,AO,1,2, ,, ,Y,, ,https://www.dropbox.com/sh/j8w4cqpau10w9op/AAAIIwVt2WdWLqeIiCm7F0rJa?dl=0
+Benin,Benin,BEN,BJ,3,1, ,, , ,, ,https://www.dropbox.com/sh/l1xzjif6r5czawt/AABLX2FL4dP9rUtvBE2szkdHa?dl=0
+Botswana,Botswana,BWA,BT,0,, ,, , ,, ,
+Burkina Faso,BurkinaFaso,BFA,BF,4,2, ,, ,Y,, ,https://www.dropbox.com/sh/lnne78t4axe3gfr/AABnkKUNJBmhErszqB6JGvJsa?dl=0
+Burundi,Burundi,BDI,BU,2,1, ,, , ,, ,https://www.dropbox.com/sh/1ryjtu0wydpmn5h/AADw57wYCecOlr54GKMIw8gga?dl=0
+Cameroon,Cameroon,CMR,CM,3,2, ,Y, ,Y,, ,https://www.dropbox.com/sh/br7n0vkqynxsvx2/AAAbW5NKgfEnAbq4qCvKOhi-a?dl=0
+Cape Verde,CapeVerde,CPV,CV,0,, ,, , ,, ,
+Central African Republic,CentralAfricanRepublic,CAF,CF,1,3, ,Y, ,Y,, ,https://www.dropbox.com/sh/43w41nmglnj1bh4/AABld1CN7cutEFFIBlqifqNDa?dl=0
+Chad,Chad,TCD,TD,1,2, ,, ,Y,, ,https://www.dropbox.com/sh/hf8xxjvx0xims4s/AAAjXpg6Zj9LgluMiFfbdXopa?dl=0
+Comoros,Comoros,COM,KM,1,2, ,, ,Y,, ,https://www.dropbox.com/sh/67w0m2mwmvldi6m/AAAq5KBUkpgFwiZRaolhs2-Aa?dl=0
+Congo,Congo,COG,CG,0,, ,, , ,, ,https://www.dropbox.com/sh/0e86nhue5jogvbd/AACGQH4mWW2X17h30_CJY53ya?dl=0
+Congo Democratic Republic,CongoDemocraticRepublic,COD,CD,2,2, ,, ,Y,, ,https://www.dropbox.com/sh/wfsfvmlkejws3kv/AAAwjWx0L-UlX42GBIq3-Dcwa?dl=0
+Cote dIvoire,CotedIvoire,CIV,CI,3,2, ,Y, ,Y,, ,https://www.dropbox.com/sh/hm9hcmhuwci20qa/AADGTe0B-CJCWwHTp2WT7-WBa?dl=0
+Egypt,Egypt,EGY,EG,0,, ,, , ,, ,
+Equatorial Guinea,Equatorial Guinea,GNQ,EK,0,, ,, , ,, ,
+Eritrea,Eritrea,ERI,ER,0,, ,, , ,, ,
+Eswatini,Swaziland,SWZ,SZ,1,3, ,, ,Y,, ,https://www.dropbox.com/sh/mhc0bdaw9qtq8ia/AAA5oK5RXcC79YNxg6UI3ggUa?dl=0
+Ethiopia,Ethiopia,ETH,ET,4,1, ,, , ,, ,https://www.dropbox.com/sh/2zxxkb5n49zbq8z/AADds18654FHx1NT8_nRCq2ja?dl=0
+Gabon,Gabon,GAB,GA,1,2, ,Y, ,Y,, ,https://www.dropbox.com/sh/h75obf6dr0pq5fw/AAAAPf5ungs5Q0bAp8D89HEWa?dl=0
+Gambia,Gambia,GMB,GM,0,, ,, , ,, ,https://www.dropbox.com/sh/2535jvkk9oqrd1g/AAAt4j89CWRxbDEaBM3sfPUEa?dl=0
+Ghana,Ghana,GHA,GH,5,1, ,, , ,, ,https://www.dropbox.com/sh/cp7tr3h9wcy9ngs/AABpcCAXxHsqQcKf8YADH4Zqa?dl=0
+Guinea,Guinea,GIN,GN,3,2, ,Y, ,Y,, ,https://www.dropbox.com/sh/hurzd165k0rojml/AABk0E0MohmuBXyjG5HNLBvLa?dl=0
+Kenya,Kenya,KEN,KE,3,1, ,, , ,, ,https://www.dropbox.com/sh/7ggfo9rctlbkou9/AACwe5J-lKVG6o0dmogJw9AUa?dl=0
+Lesotho,Lesotho,LSO,LS,3,1, ,Y, , ,, ,https://www.dropbox.com/sh/rj9qa86fsj9mmxi/AAB4tpk5nFE7d75M0oy3mIk8a?dl=0
+Liberia,Liberia,LBR,LB,2,1, ,Y, , ,, ,https://www.dropbox.com/sh/kg469ks72la2kkl/AABkpbFTCE0D1fWoLjFTMcJLa?dl=0
+Madagascar,Madagascar,MDG,MD,2,3, ,, ,Y,, ,https://www.dropbox.com/sh/phe4ddmfst2q9wv/AAA8E0EEJz3avzKUZyuaPdlVa?dl=0
+Malawi,Malawi,MWI,MW,4,1, ,Y, , ,, ,https://www.dropbox.com/sh/lmr91irocttr5f4/AAB7ONC4uGPkWnd9gZkGRB4Ha?dl=0
+Mali,Mali,MLI,ML,5,1, ,, , ,, ,https://www.dropbox.com/sh/gyhw9r0ljggqyof/AAAHAHMCIdAzsOmOv0oaJS9ka?dl=0
+Mauritania,Mauritania,MRT,MR,0,, ,, , ,, ,
+Morocco,Morocco,MAR,MA,1,3, ,, ,Y,, ,https://www.dropbox.com/sh/iwy2jhq08wkp92x/AAAXj6I3EgUq-dwV6eEUKP07a?dl=0
+Mozambique,Mozambique,MOZ,MZ,1,2, ,Y, ,Y,, ,https://www.dropbox.com/sh/zds6tcoiipq7sb5/AAAGIVGVqQ6IFfZU0dkrFVtLa?dl=0
+Myanmar,Myanmar,MMR,MM,1,1, ,, , ,, ,https://www.dropbox.com/sh/vibuc02732soe12/AACioX0wVahUhYD4DjHZJ4-Va?dl=0
+Namibia,Namibia,NAM,NM,3,1, ,Y, , ,, ,https://www.dropbox.com/sh/mo1zv0387xaf7p4/AADvSxzehfPyPUypxz5GCEYLa?dl=0
+Nepal,Nepal,NPL,NP,4,1, ,, , ,, ,https://www.dropbox.com/sh/6jtp1eoed84ti0s/AAB42Sh27sqq2LQDpEl9PRHEa?dl=0
+Niger,Niger,NER,NI,2,3, ,, ,Y,, ,https://www.dropbox.com/sh/dimydocnpdn1105/AADbn0yTJ8fg7Oi1pFAlj1pVa?dl=0
+Nigeria,Nigeria,NGA,NG,5,1, ,, , ,, ,https://www.dropbox.com/sh/4afsvhgwijus2y3/AAAeP4OPwwwTnLTM5AEtSofta?dl=0
+Nigeria (Ondo State),NigeriaOndoState,NGA,OS,0,, ,, , ,, ,https://www.dropbox.com/sh/fsf8h41992hlcdp/AACjvpWiXVKu33Zst6nEfEOca?dl=0
+Pakistan,Pakistan,PAK,PK,2,1, ,, , ,, ,https://www.dropbox.com/sh/ljvsojwfmngvbng/AABBdqARVjFwYv1pXgsHnB12a?dl=0
+Rwanda,Rwanda,RWA,RW,5,1, ,Y, , ,, ,https://www.dropbox.com/sh/ane6e4lhrhgs6oh/AAB4f7B-3ZSDCS5WhiflD7I2a?dl=0
+Sao Tome and Principe,SaoTomeandPrincipe,STP,ST,0,, ,, , ,, ,https://www.dropbox.com/sh/2eyu8ro5yxdb2pa/AACEFeDcpRR1LzOofQoFLYJ7a?dl=0
+Senegal,Senegal,SEN,SN,8,1, ,, , ,, ,https://www.dropbox.com/sh/5cgjoopkxpg2tul/AABTwMYl_PK2xFao9BazUDDua?dl=0
+Sierra Leone,SierraLeone,SLE,SL,1,1, ,, , ,, ,https://www.dropbox.com/sh/dzyhkgz0buj9o72/AADZxx2henK4wPwh_BkcgHTOa?dl=0
+South Africa,SouthAfrica,ZAF,ZA,1,2, ,, ,Y,, ,https://www.dropbox.com/sh/wao26keqytsk6oq/AACb6f34oeCpmASAcMTkn5bFa?dl=0
+Sudan,Sudan,SDN,SD,0,, ,, , ,, ,https://www.dropbox.com/sh/3caxyhrahl04mho/AADWqrj19cC5XFB3hUcvfLw6a?dl=0
+Tanzania,Tanzania,TZA,TZ,3,1, ,, , ,, ,https://www.dropbox.com/sh/tm7pt0dmhqr2rds/AABL8RIbmYk1xwbKyTrqQ0jda?dl=0
+Togo,Togo,TGO,TG,2,1,Y,,Y, ,, ,https://www.dropbox.com/sh/x5l27fs9m0xy5og/AADoqoX5U91WL5MM2cccTXyfa?dl=0
+Tunisia,Tunisia,TUN,TN,0,, ,, , ,, ,https://www.dropbox.com/sh/0v2h1zq0081sh2e/AADUIu3bly8M_c0EXPWNQ0Lma?dl=0
+Uganda,Uganda,UGA,UG,4,1, ,Y, , ,, ,https://www.dropbox.com/sh/kk828pegs2kylp8/AACmin0rXs7icV7NaEsjdz3la?dl=0
+Zambia,Zambia,ZMB,ZM,3,1, ,Y, , ,, ,https://www.dropbox.com/sh/tpjgngtuil2wuyf/AADeAjQKsvxFcVaiDDuejPdaa?dl=0
+Zimbabwe,Zimbabwe,ZWE,ZW,3,1, ,Y, , ,, ,https://www.dropbox.com/sh/qkz28t3jo01b65o/AADakydDjgtShcj9p0sa2gh0a?dl=0
+Total,,,,,,1,14,1,16,,0,
+Possible,,,,,,35,18,35,35,,,
