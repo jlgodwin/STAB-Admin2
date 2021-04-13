@@ -42,7 +42,7 @@ library(maptools)
 
 ## Parameters ####
 
-country <- "Senegal"
+country <- "Togo"
 beg.year <- 1990
 end.year <- 2019
 usingGoogleSheets <- TRUE

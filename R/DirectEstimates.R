@@ -498,8 +498,6 @@ if(doHIVAdj){
     }
   }
 
-  save(direct.natl, file = paste0(folder.name, '/',
-                                  country, '_directHIV_natl.rda'))
   save(direct.natl.yearly, file = paste0(folder.name, '/',
                                          country, '_directHIV_natl_yearly.rda'))
   save(direct.admin1, file = paste0(folder.name, '/',
