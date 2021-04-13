@@ -43,9 +43,9 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
         - Creates directories: data.dir/folder.name/Plots, data.dir/folder.name/Plots/ShapeCheck
         - neighborhood structure on polygons
           - data.dir/folder.name/Plots/ShapeCheck/CountryName_adm\*\_neighb.pdf
-        - plots cluster locations in DHS Geographic Data
+        - cluster locations in DHS Geographic Data
           - data.dir/folder.name/Plots/ShapeCheck/Points_SurveyYear_GE.png
-        - plots cluster locations from DHS Geographic that are present in Births Recode file 
+        - cluster locations from DHS Geographic that are present in Births Recode file 
           - data.dir/folder.names/Plots/ShapeCheck/Points_Survery_Year_BR.png 
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
