@@ -6,6 +6,8 @@ Click here for the [**SPACE STATION**](http://faculty.washington.edu/jonno/space
 
 Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
 
+![Pipeline Schematic](Figs/Pipeline.png) 
+
 # Example data
   * Country-specific data
     * Togo 2013-14, 1998 DHS Births Recode (STATA)
@@ -15,11 +17,9 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
     * SurveyNum.csv
       - Contains CountryName, unique DHS survey number, DHS survey name key
     * SurveyList_BR_GE.csv
-      - Contains SO MUCH INFO including last upload to [DHS](https://www.dhsprogram.com), 
+      - Contains SO MUCH INFO including last upload to [DHS](https://www.dhsprogram.com), survey type, data format, filenames, etc. 
     * CountryList.csv or [**Command Center: Country List**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
     * SurveyInfo.csv or [**Command Center: Survey Info**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=1656161984)
-
-![Pipeline Schematic](Figs/Pipeline.png)
 
 # .R Files
 
