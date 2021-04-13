@@ -27,63 +27,88 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
         - DHS GPS files (\*.cpg, \*.dbf, \*.prj, \*.sbn, \*.sbx, \*.shp, \*.shp.xml, \*.shx),
         - GADM (usually) polygon files (\*.cpg, \*.dbf, \*.prj, \*.shp,  \*.shx) 
      *  Associated `SUMMER` functions: 
-        - `getBirths()`: 365-370 (Section: Load Data)
+        - `getBirths()`: loads DHS Births Recode STATA file from filename and prepares data for survival analysis based on birth history data
+          - Section: Load Data
      *  Products:
         - `admin1.mat`, `admin2.mat`: `matrix` describing neighborhood structure of subnational polygons for future use in `SUMMER` and nested `INLA` functions
            - Section: Create adjacency matrices
-           - Lines: 250-254, 261-265, 273-275, 280-282
-           - Output: CountryName_Amat.rda 
+           - Output: data.dir/folder.name/shapes.sub.dir/CountryName_Amat.rda 
         - `admin1.names`, `admin2.names`: `data.frame` keys matching GADM area name strings to internal (unique) area name strings
           - Section: Create adjacency matrices 
-          - Lines: 255-256, 266-267, 276-278, 283-285
-          - Output: CountryName_Amat_Names.rda
+          - Output: data.dir/folder.name/shapes.sub.dir/CountryName_Amat_Names.rda
         - `mod.dat`: `data.frame` that summarizes number of deaths and agemonths for each cluster and contains GPS location of clusters and Admin area assignments
           - Sections: Combine survey frames, Check frame, Save frame 
-          - Lines: 545, 547, 554, 558-560, 564-565, 569-571
-          - Output: CountryName_cluster_dat.rda
+          - Output: data.dir/folder.name/CountryName_cluster_dat.rda
      *  Plots:
-        - Creates directories: folder.name/Plots, folder.name/Plots/ShapeCheck
-        - folder.name/Plots/ShapeCheck/CountryName_adm*_neighb.pdf: plots neighborhood structure on polygons
-        - folder.name/Plots/ShapeCheck/Points_SurveyYear_GE.png: plots cluster locations in DHS Geographic Data
-        - folder.names/Plots/ShapeCheck/Points_Survery_Year_BR.png: plots cluster locations from DHS Geographic that are present in Births Recode file 
+        - Creates directories: data.dir/folder.name/Plots, data.dir/folder.name/Plots/ShapeCheck
+        - neighborhood structure on polygons
+          - data.dir/folder.name/Plots/ShapeCheck/CountryName_adm\*\_neighb.pdf
+        - plots cluster locations in DHS Geographic Data
+          - data.dir/folder.name/Plots/ShapeCheck/Points_SurveyYear_GE.png
+        - plots cluster locations from DHS Geographic that are present in Births Recode file 
+          - data.dir/folder.names/Plots/ShapeCheck/Points_Survery_Year_BR.png 
   2. **DirectEstimates.R**
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
      *  Associated `SUMMER` functions: 
-        - `getDirectList()`: 310-321 (Section: National), 351-356 (Section: National), 376-381 (Section: National)
-        - `getDirect()`: 323-334 (Section: National), 358-363 (Section: Admin1), 383-388 (Section: Admin2)
-        - `getAdjusted()`: 426-431, 465-471, 486-492 (Section: HIV adjustment)
+        - `getDirectList()`: takes output of `getBirths()` and computes H-T estimates of U5MR
+          - Section: National
+        - `getDirect()`: takes output of `getBirths()` and computes H-T estimates of U5MR when country has single survey
+          - Section: National, Admin1, Admin2
+        - `getAdjusted()`: takes output of `getDirect()` and divides estimates by a constant/adjsutst SEs; used for HIV adjustment and benchmarking for direct estimates
+          - Section: HIV Adjustment
      * Products:
        - `direct.natl`: `data.frame` output from `getDirect()` or `getDirectList()` with national Horvitz-Thompson estimates of child mortality by 5-year period and survey
-         - Sections: Direct Estimates (National)
-         - Lines: 310-315, 323-328, 335-336, 342-344
-         - Output: CountryName_direct_natl.rda
+         - Section: Direct Estimates (National)
+         - Output: data.dir/folder.name/CountryName_direct_natl.rda
        - `direct.natl.yearly`: `data.frame` output from `getDirect()` or `getDirectList()` with national Horvitz-Thompson estimates of child mortality by yearand survey
          - Sections: Direct Estimates (National), HIV Adjustments (if appropriate)
-         - Lines: 316-321, 329-334, 338-339, 345-347, 426-434, 501-502
-         - Output: CountryName_direct_natl_yearly.rda, CountryName_directHIV_natl_yearly.rda
+         - Output: data.dir/folder.name/CountryName_direct_natl_yearly.rda, data.dir/folder.name/CountryName_directHIV_natl_yearly.rda
        - `direct.admin1`: `data.frame` output from `getDirect()` or `getDirectList()` with Admin1 Horvitz-Thompson estimates of child mortality by  5-year period and survey
          - Sections: Direct Estimates (Admin1), HIV Adjustments (if appropriate)
-         - Lines: 351-356, 358-365, 368-370, 465-475, 503-504
-         - Output: CountryName_direct_admin1.rda, CoutnryName_directHIV_admin1.rda
+         - Output: data.dir/folder.name/CountryName_direct_admin1.rda, data.dir/folder.name/CountryName_directHIV_admin1.rda
        - `direct.admin2`: `data.frame` output from `getDirect()` or `getDirectList()` with Admin2 Horvitz-Thompson estimates of child mortality by  5-year period and survey
          - Sections: Direct Estimates (Admin2), HIV Adjustments (if appropriate)
-         - Lines: 376-381, 383-390, 394-396, 486-496, 506-507
-         - Output: CountryName_direct_admin2.rda, CoutnryName_directHIV_admin2.rda
+         - Output: data.dir/folder.name/CountryName_direct_admin2.rda, data.dir/folder.name/CountryName_directHIV_admin2.rda
      * Plots:
        - Creates directory: folder.name/Plots/Direct
        - (Ugly-ish, non-`SUMMER`) Polygon plots direct estimates by administrative division
-         - CountryName_\*\_direct_poly.png, where \*: natl, admin1, admin2
+         - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly.png, where \*: natl, admin1, admin2
          - if a country requires HIV adjustment, the plots display the adjusted estimates
        - Spaghetti plots of direct estimates by administrative division
-         - CountryName_\*\_direct_spaghetti.png, where \*: natl, admin1, admin2 and (for some reason) CountryName_natl_direct_yearly_spaghetti.png
+         - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_spaghetti.png, where \*: natl, admin1, admin2 and (for some reason) data.dir/folder.name/Plots/Direct/CountryName_natl_direct_yearly_spaghetti.png
          - if a country requires HIV adjustment, the plots display the adjusted estimates
   3. **SmoothedDirect.R**
       * Uses output of **DataProcessing.R** and **DirectEstimates.R** to get estimates of child mortality smoothed in space and time, benchmarks to UN IGME when `doBenchmark == TRUE`
       * Associated `SUMMER` functions:
-        - `aggregateSurvey()`:
-        - `smoothDirect()`:
-        - `getSmoothed()`:
-        - `getAdjusted()`:
+        - `aggregateSurvey()`: takes output of `getDirectList()` to compute meta-analysis estimator for each area and time (i.e. aggregating across surveys)
+          - Section:  Aggregate surveys
+        - `smoothDirect()`: takes output of `aggregateSurvey()` (or `getDirectList()`) and fits spatiotemporal smoothing model in `INLA`
+          - Sections: Fit smoothing model, Benchmarking
+        - `getSmoothed()`: takes output of `smoothDirect()` to get spatiotemporal estimates of child mortality in easily usable format
+          - Sections: Fit smoothing model, Benchmarking
+        - `getAdjusted()`: takes output of `aggregateSurvey()` (or `getDirectList()`) and benchmarks to UN IGME estimates
+          - Sections: Benchmarking
+      * Products:
+        - `res.natl`
+           - Section: Fit smoothing model (National), Benchmarking (National)
+           - Output: data.dir/folder.name/CountryName_res_natl_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_natlBench_SmoothedDirect.rda
+        - `res.natl.yearly`
+           - Section: Fit smoothing model (National), Benchmarking (National Yearly)
+           - Output: data.dir/folder.name/CountryName_res_natl_yearly_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_natlBench_yearly_SmoothedDirect.rda
+        - `res.admin1`
+           - Section: Fit smoothing model (National), Benchmarking (National Yearly)
+           - Output: data.dir/folder.name/CountryName_res_admin1_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_admin1Bench_SmoothedDirect.rda
+        - `res.admin2`
+           - Section: Fit smoothing model (National), Benchmarking (National Yearly)
+           - Output: data.dir/folder.name/CountryName_res_admin1_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_admin1Bench_SmoothedDirect.rda
+      * Plots:
+         - Creates directory: data.dir/folder.name/Plots/SmoothedDirect
+         - `SUMMER` plots using `plot`, plots benchmarked results if `doBenchmark == TRUE`
+            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmoothedDirect.pdf
+         - Spaghetti Plots
+            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmothedDirect_spaghetti\*\.pdf  
+         - Polygon Plots (better to use `SUMMER::mapPlot` maybe)
+            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmoothedDirect_poly.pdf 
   5. **Betabinomial.R**  
      * Uses output of **DataProcessing.R** to get model-based discrete hazards estimates of child mortality smoothed in space and time, adjusts for HIV when appropriate and benchmarks to UN IGME when `doBenchmark == TRUE`
      * Associated `SUMMER` functions:
