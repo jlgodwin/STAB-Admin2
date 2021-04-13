@@ -19,6 +19,8 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
     * CountryList.csv or [**Command Center: Country List**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0)
     * SurveyInfo.csv or [**Command Center: Survey Info**](https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=1656161984)
 
+![Pipeline Schematic](Figs/Pipeline.png)
+
 # .R Files
 
   1. **DataProcessing.R**
