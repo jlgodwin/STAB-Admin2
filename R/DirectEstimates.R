@@ -20,6 +20,7 @@
 #'          if usingGoogleSheets == FALSE it reads:
 #'             data.dir/CountryList.csv
 #'             data.dir/SurveyInfo.csv 
+#'             data.dir/HIV.csv
 #'        
 #' @param country character, country name
 #' @param beg.year integer/numeric, beginning of period of estimation
@@ -70,7 +71,7 @@ library(survey)
 
 ## Parameters ####
 
-country <- "Senegal"
+country <- "Togo"
 beg.year <- 1990
 end.year <- 2019
 usingGoogleSheets <- TRUE
@@ -518,89 +519,164 @@ if(!dir.exists(paths = paste0(folder.name,
 }
 
 ### National ####
-med.palette <- brewer.pal(5, name = "Purples")
-med.int <- classIntervals(round(direct.natl$logit.est, 2),
-                          n = 5, style = 'jenks')
-med.col <- findColours(med.int, med.palette)
 
-for(survey in surveys){
-  png(paste0(folder.name,
-             "/Plots/Direct/",
-             country, '_natl_', 
-             survey,'_direct_poly.png'))
+#### By Survey ####
+for(plotyear in c(1990, 2000,
+                  2010, 2019)){
   
-  par(mfrow = c(2,4))
-  for(year in periods){
-    idx <- which(direct.natl$surveyYears == survey &
-                   direct.natl$years == year) 
-    plot(poly.adm0, border = F, col = med.col[idx],
-         axes = F, main = year)
+  tmp <- direct.natl[direct.natl$years == paste(plotyear,
+                                                plotyear + 4,
+                                                sep = "-"),]
+  tmp$region[tmp$region == "All"] <- country
+  
+  pdf(paste0(folder.name, "/Plots/Direct/",
+             country, 
+             "_natl_direct_poly_bySurvey_",
+             plotyear, ".pdf"),
+      width = 3.5, height = 3.5)
+  {
+    print(SUMMER::mapPlot(data = tmp,
+                          is.long = T, 
+                          variables = "surveyYears", 
+                          values = "mean",direction = -1,
+                          geo = poly.adm0, 
+                          ncol = 2,
+                          legend.label = "U5MR",
+                          per1000 = TRUE,
+                          by.data = "region",
+                          by.geo = paste0("NAME_0")))
   }
-  plot(NA, xlim = c(0,1), ylim = c(0,1), axes = F, xlab = "", ylab = "")
-  legend(x = "center",inset = 0,
-         legend = names(attr(med.col, 'table')),
-         fill = med.palette, cex= 1, horiz = FALSE, bty = 'n')
-  
-  
-  
   dev.off()
 }
+
+
+#### Meta-analysis ####
+plotagg.natl <- aggregateSurvey(direct.natl)
+plotagg.natl$region[plotagg.natl$region == "All"] <- country
+
+pdf(paste0(folder.name, "/Plots/Direct/",
+           country,
+           "_natl_direct_poly_Meta.pdf"))
+{
+  print(SUMMER::mapPlot(data = plotagg.natl,
+                        is.long = T, 
+                        variables = "years", 
+                        values = "mean",
+                        direction = -1,
+                        geo = poly.adm0, ncol = 3,
+                        legend.label = "U5MR",
+                        per1000 = TRUE,
+                        by.data = "region",
+                        by.geo = paste0("NAME_0")))
+}
+dev.off()
 
 ### Admin1 ####
 
-med.palette <- brewer.pal(n = 5, name = "Purples")
-med.int <- classIntervals(round(direct.admin1$logit.est, 2),
-                          n = 5, style = 'jenks')
-med.col <- findColours(med.int, med.palette)
-
-for(survey in surveys){
-  png(paste0(folder.name,
-             "/Plots/Direct/", 
-             country, '_admin1_', 
-             survey,'_direct_poly.png'))
+#### By Survey ####
+for(plotyear in c(1990, 2000,
+                  2010, 2019)){
   
-  par(mfrow = c(2,4))
-  for(year in periods){
-    idx <- which(direct.admin1$surveyYears == survey &
-                   direct.admin1$years == year) 
-    plot(poly.adm1, border = F, col = med.col[idx],
-         axes = F, main = year)
+  tmp <- direct.admin1[direct.admin1$years == paste(plotyear,
+                                                    plotyear + 4,
+                                                    sep = "-"),]
+  tmp$regionPlot <- admin1.names$GADM[match(tmp$region, admin1.names$Internal)]
+  
+  pdf(paste0(folder.name, "/Plots/Direct/",
+             country, 
+             "_admin1_direct_poly_bySurvey_",
+             plotyear, ".pdf"),
+      width = 3.5, height = 3.5)
+  {
+    print(SUMMER::mapPlot(data = tmp,
+                          is.long = T, 
+                          variables = "surveyYears", 
+                          values = "mean",direction = -1,
+                          geo = poly.adm1, ncol = 2,
+                          legend.label = "U5MR",
+                          per1000 = TRUE,
+                          by.data = "regionPlot",
+                          by.geo = paste0("NAME_1")))
   }
-  plot(NA, xlim = c(0,1), ylim = c(0,1), axes = F, xlab = "", ylab = "")
-  legend(x = "center",inset = 0,
-         legend = names(attr(med.col, 'table')),
-         fill = med.palette, cex= .75, horiz = FALSE, bty = 'n')
-  
   dev.off()
 }
 
+
+#### Meta-analysis ####
+plotagg.admin1 <- aggregateSurvey(direct.admin1)
+plotagg.admin1$regionPlot <- admin1.names$GADM[match(plotagg.admin1$region,
+                                                     admin1.names$Internal)]
+pdf(paste0(folder.name, "/Plots/Direct/",
+           country,
+           "_admin1_direct_poly_Meta.pdf"))
+{
+  print(SUMMER::mapPlot(data = plotagg.admin1,
+                        is.long = T, 
+                        variables = "years", 
+                        values = "mean",
+                        direction = -1,
+                        geo = poly.adm1,
+                        ncol = 3,
+                        legend.label = "U5MR",
+                        per1000 = TRUE,
+                        by.data = "regionPlot",
+                        by.geo = paste0("NAME_1")))
+}
+dev.off()
+
+
 ### Admin2 ####
 if(doAdmin2){
-  med.palette <- brewer.pal(n = 7, name = "Purples")
-  med.int <- classIntervals(round(direct.admin2$logit.est, 2),
-                            n = 7, style = 'jenks')
-  med.col <- findColours(med.int, med.palette)
-  
-  for(survey in surveys){
-    png(paste0(folder.name,
-               "/Plots/Direct/",
-               country, '_admin2_', 
-               survey,'_direct_poly.png'))
+  #### By Survey ####
+  for(plotyear in c(1990, 2000,
+                    2010, 2019)){
     
-    par(mfrow = c(2,4))
-    for(year in periods){
-      idx <- which(direct.admin2$surveyYears == survey &
-                     direct.admin2$years == year) 
-      plot(poly.adm2, border = F, col = med.col[idx],
-           axes = F, main = year)
+    tmp <- direct.admin2[direct.admin2$years == paste(plotyear,
+                                                      plotyear + 4,
+                                                      sep = "-"),]
+    tmp$regionPlot <- admin2.names$GADM[match(tmp$region, admin2.names$Internal)]
+    
+    pdf(paste0(folder.name, "/Plots/Direct/",
+               country, 
+               "_admin2_direct_poly_bySurvey_",
+               plotyear, ".pdf"),
+        width = 3.5, height = 3.5)
+    {
+      print(SUMMER::mapPlot(data = tmp,
+                            is.long = T, 
+                            variables = "surveyYears", 
+                            values = "mean",direction = -1,
+                            geo = poly.adm2, ncol = 2,
+                            legend.label = "U5MR",
+                            per1000 = TRUE,
+                            by.data = "regionPlot",
+                            by.geo = paste0("NAME_2")))
     }
-    plot(NA, xlim = c(0,1), ylim = c(0,1), axes = F, xlab = "", ylab = "")
-    legend(x = "center",inset = 0,
-           legend = names(attr(med.col, 'table')),
-           fill = med.palette, cex= .75, horiz = FALSE, bty = 'n')
-    
     dev.off()
   }
+  
+  
+  ### Meta-analysis ####
+  plotagg.admin2 <- aggregateSurvey(direct.admin2)
+  plotagg.admin2$regionPlot <- admin2.names$GADM[match(plotagg.admin2$region,
+                                                       admin2.names$Internal)]
+  pdf(paste0(folder.name, "/Plots/Direct/",
+             country, 
+             "_admin2_direct_poly_Meta.pdf"))
+  {
+    print(SUMMER::mapPlot(data = plotagg.admin2,
+                          is.long = T, 
+                          variables = "years", 
+                          values = "mean",
+                          direction = -1,
+                          geo = poly.adm2,
+                          ncol = 3,
+                          legend.label = "U5MR",
+                          per1000 = TRUE,
+                          by.data = "regionPlot",
+                          by.geo = paste0("NAME_2")))
+  }
+  dev.off()
 }  
 
 ## Spaghetti Plots ####
