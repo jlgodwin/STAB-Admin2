@@ -519,6 +519,12 @@ if(!dir.exists(paths = paste0(folder.name,
 }
 
 ### National ####
+if(!dir.exists(paths = paste0(folder.name,
+                              '/Plots/Direct/', 'National'))){
+  dir.create(path = paste0(folder.name,
+                           '/Plots/Direct/', 'National'))
+}
+
 
 #### By Survey ####
 for(plotyear in c(1990, 2000,
@@ -529,7 +535,7 @@ for(plotyear in c(1990, 2000,
                                                 sep = "-"),]
   tmp$region[tmp$region == "All"] <- country
   
-  pdf(paste0(folder.name, "/Plots/Direct/",
+  pdf(paste0(folder.name, "/Plots/Direct/National/",
              country, 
              "_natl_direct_poly_bySurvey_",
              plotyear, ".pdf"),
@@ -554,7 +560,7 @@ for(plotyear in c(1990, 2000,
 plotagg.natl <- aggregateSurvey(direct.natl)
 plotagg.natl$region[plotagg.natl$region == "All"] <- country
 
-pdf(paste0(folder.name, "/Plots/Direct/",
+pdf(paste0(folder.name, "/Plots/Direct/National/",
            country,
            "_natl_direct_poly_Meta.pdf"))
 {
@@ -573,6 +579,12 @@ dev.off()
 
 ### Admin1 ####
 
+if(!dir.exists(paths = paste0(folder.name,
+                              '/Plots/Direct/', 'Admin1'))){
+  dir.create(path = paste0(folder.name,
+                           '/Plots/Direct/', 'Admin1'))
+}
+
 #### By Survey ####
 for(plotyear in c(1990, 2000,
                   2010, 2019)){
@@ -582,7 +594,7 @@ for(plotyear in c(1990, 2000,
                                                     sep = "-"),]
   tmp$regionPlot <- admin1.names$GADM[match(tmp$region, admin1.names$Internal)]
   
-  pdf(paste0(folder.name, "/Plots/Direct/",
+  pdf(paste0(folder.name, "/Plots/Direct/Admin1/",
              country, 
              "_admin1_direct_poly_bySurvey_",
              plotyear, ".pdf"),
@@ -606,7 +618,7 @@ for(plotyear in c(1990, 2000,
 plotagg.admin1 <- aggregateSurvey(direct.admin1)
 plotagg.admin1$regionPlot <- admin1.names$GADM[match(plotagg.admin1$region,
                                                      admin1.names$Internal)]
-pdf(paste0(folder.name, "/Plots/Direct/",
+pdf(paste0(folder.name, "/Plots/Direct/Admin1/",
            country,
            "_admin1_direct_poly_Meta.pdf"))
 {
@@ -627,6 +639,12 @@ dev.off()
 
 ### Admin2 ####
 if(doAdmin2){
+  if(!dir.exists(paths = paste0(folder.name,
+                                '/Plots/Direct/', 'Admin2'))){
+    dir.create(path = paste0(folder.name,
+                             '/Plots/Direct/', 'Admin2'))
+  }
+  
   #### By Survey ####
   for(plotyear in c(1990, 2000,
                     2010, 2019)){
@@ -636,7 +654,7 @@ if(doAdmin2){
                                                       sep = "-"),]
     tmp$regionPlot <- admin2.names$GADM[match(tmp$region, admin2.names$Internal)]
     
-    pdf(paste0(folder.name, "/Plots/Direct/",
+    pdf(paste0(folder.name, "/Plots/Direct/Admin2/",
                country, 
                "_admin2_direct_poly_bySurvey_",
                plotyear, ".pdf"),
@@ -660,7 +678,7 @@ if(doAdmin2){
   plotagg.admin2 <- aggregateSurvey(direct.admin2)
   plotagg.admin2$regionPlot <- admin2.names$GADM[match(plotagg.admin2$region,
                                                        admin2.names$Internal)]
-  pdf(paste0(folder.name, "/Plots/Direct/",
+  pdf(paste0(folder.name, "/Plots/Direct/Admin2/",
              country, 
              "_admin2_direct_poly_Meta.pdf"))
   {
@@ -687,7 +705,7 @@ plot.years <- seq(beg.year + 2,
 
 ### National ####
 pdf(paste0(folder.name,
-           "/Plots/Direct/", 
+           "/Plots/Direct/National/", 
            country, '_natl_direct_spaghetti.pdf'),
     height = 4, width = 4)
 {
@@ -752,9 +770,9 @@ pdf(paste0(folder.name,
                     "IHME"))
 }
 dev.off()
-  
+
 pdf(paste0(folder.name,
-           "/Plots/Direct/",
+           "/Plots/Direct/National/",
            country,
            '_natl_direct_yearly_spaghetti.pdf'),
     width = 4, height = 4)
@@ -828,7 +846,7 @@ dev.off()
 
 par(mfrow = c(1,1))
 pdf(paste0(folder.name,
-           "/Plots/Direct/",
+           "/Plots/Direct/Admin1/",
            country,
            '_admin1_direct_spaghetti.pdf'),
     height = 6, width = 6)
@@ -927,7 +945,7 @@ dev.off()
 if(doAdmin2){
   par(mfrow = c(1,1))
   pdf(paste0(folder.name,
-             "/Plots/Direct/",
+             "/Plots/Direct/Admin2",
              country,
              '_admin2_direct_spaghetti.pdf'),
       height = 6, width = 6)
@@ -997,7 +1015,13 @@ if(doAdmin2){
                  type = 'l', col = cols[svy.idx], lwd = 2,
                  main = admin2.names$GADM[area])
           }
-
+          
+          
+          # for(year.id in 1:length(periods)){
+          #   segments(pane.years[year.id], tmp$upper[year.id],
+          #            pane.years[year.id], tmp$lower[year.id],
+          #            col = cols[svy.idx])
+          # }
         }else{
           if(dim(tmp)[1] != 0){
             lines(pane.years, tmp$mean, cex = tmp$cex2,
@@ -1007,6 +1031,11 @@ if(doAdmin2){
                    col = alpha(cols[svy.idx], 0.35),
                    cex = tmp$cex2)
           }
+          # for(year.id in 1:length(periods)){
+          #   segments(pane.years[year.id], tmp$upper[year.id],
+          #            pane.years[year.id], tmp$lower[year.id],
+          #            col = cols[svy.idx])
+          # }
         }
         
         if(!doAdmin2){
