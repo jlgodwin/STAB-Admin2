@@ -78,9 +78,9 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
      * Plots:
        - Creates directory: folder.name/Plots/Direct
        -  Polygon plots direct estimates by administrative division
-         - By survey: data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly_BySurvey_Period.pdf, where \*: natl, admin1, admin2
-         - Meta-analysis estimator: data.dir/folder.name/Plots/CountryName_\*\_direct_poly_Meta.pdf, where \*: natl, admin1, admin2
-         - if a country requires HIV adjustment, the plots display the adjusted estimates
+          - By survey: data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly_BySurvey_Period.pdf, where \*: natl, admin1, admin2
+          - Meta-analysis estimator: data.dir/folder.name/Plots/CountryName_\*\_direct_poly_Meta.pdf, where \*: natl, admin1, admin2
+          - if a country requires HIV adjustment, the plots display the adjusted estimates
        - Spaghetti plots of direct estimates by administrative division
          - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_spaghetti.png, where \*: natl, admin1, admin2 and (for some reason) data.dir/folder.name/Plots/Direct/CountryName_natl_direct_yearly_spaghetti.png
          - if a country requires HIV adjustment, the plots display the adjusted estimates
