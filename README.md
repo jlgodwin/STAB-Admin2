@@ -53,11 +53,15 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
      *  Uses output of **DataProcessing.R** to get design-based discrete hazards estimates and SEs of child mortality adjusts for HIV when appropriate
      *  Associated `SUMMER` functions: 
         - `getDirectList()`: takes output of `getBirths()` and computes H-T estimates of U5MR
-          - Section: National
+          - Section: Direct Estimates- National, Admin1, Admin2
         - `getDirect()`: takes output of `getBirths()` and computes H-T estimates of U5MR when country has single survey
-          - Section: National, Admin1, Admin2
-        - `getAdjusted()`: takes output of `getDirect()` and divides estimates by a constant/adjsutst SEs; used for HIV adjustment and benchmarking for direct estimates
-          - Section: HIV Adjustment
+          - Section: Direct Estimates- National, Admin1, Admin2
+        - `getAdjusted()`: takes output of `getDirect*()` and divides estimates by a constant/adjsutst SEs; used for HIV adjustment and benchmarking for direct estimates
+          - Section: Direct Estimates- HIV Adjustment
+        - `mapPlot()`: takes output of `getDirect*()`, `getAdjusted()`, or `aggregateSurvey()` and plots specified column in that output for specified time period on provided `SpatialPolygonsDataFrame`
+          - Section: Polygon Plots- National, Admin1, Admin2- By Survey
+        - `aggregateSurvey()`:  takes output of `getDirectList()` to compute meta-analysis estimator for each area and time (i.e. aggregating across surveys)
+          - Section: Polygon Plots- National, Admin1, Admin2- Meta-analysis
      * Products:
        - `direct.natl`: `data.frame` output from `getDirect()` or `getDirectList()` with national Horvitz-Thompson estimates of child mortality by 5-year period and survey
          - Section: Direct Estimates (National)
@@ -73,8 +77,9 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
          - Output: data.dir/folder.name/CountryName_direct_admin2.rda, data.dir/folder.name/CountryName_directHIV_admin2.rda
      * Plots:
        - Creates directory: folder.name/Plots/Direct
-       - (Ugly-ish, non-`SUMMER`) Polygon plots direct estimates by administrative division
-         - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly.png, where \*: natl, admin1, admin2
+       -  Polygon plots direct estimates by administrative division
+         - By survey: data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly_BySurvey_Period.pdf, where \*: natl, admin1, admin2
+         - Meta-analysis estimator: data.dir/folder.name/Plots/CountryName_\*\_direct_poly_Meta.pdf, where \*: natl, admin1, admin2
          - if a country requires HIV adjustment, the plots display the adjusted estimates
        - Spaghetti plots of direct estimates by administrative division
          - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_spaghetti.png, where \*: natl, admin1, admin2 and (for some reason) data.dir/folder.name/Plots/Direct/CountryName_natl_direct_yearly_spaghetti.png
