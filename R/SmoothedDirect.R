@@ -1,18 +1,55 @@
-#  SmoothedDirect.R
-#  author: Jessica Godwin
-#  
-#  sources: LoadCommandCenter.R
-#           IHMEHand_CountryName.R
-#
-#' loads: all files in /shapeFiles_gadm 
-#'        CountryName_Amat_Names.rda
-#'        CountryName_Amat.rda
-#'        CountryName_cluster_dat.rda
-#'        Data/HIV/HIVAdjustments.rda
-#'        Analysis/R/Results.csv (IGME estimates)
-#'        Analysis/R/ADM0_Y2019M10D16.CSV (IHME estimates)
-#'        Analysis/R/ADM1_Y2019M10D16.CSV
-#'        Analysis/R/ADM2_Y2019M10D16.CSV
+#'  SmoothedDirect.R
+#'  author: Jessica Godwin
+#'  
+#'  sources: LoadCommandCenter.R
+#'           IHMEHand_CountryName.R
+#'
+#' loads: data.dir/folder.name/CountryName_cluster_dat.rda
+#'        polygons in data.dir/folder.name/shapes.sub.dir
+#'        data.dir/folder.name/shapes.sub.dir/CountryName_Amat_Names.rda
+#'        data.dir/folder.name/shapes.sub.dir/CountryName_Amat.rda
+#'        data.dir/folder.name/CountryName_direct*.rda
+#'
+#' reads:   igme.dir.rel/Results.csv (IGME estimates)
+#'          ihme.dir.rel/ADM0_Y2019M10D16.CSV (IHME estimates)
+#'          ihme.dir.rel/ADM1_Y2019M10D16.CSV
+#'          ihme.dir.rel/ADM2_Y2019M10D16.CSV
+#'          
+#'          if usingGoogleSheets == FALSE it reads:
+#'             data.dir/CountryList.csv
+#'             data.dir/SurveyInfo.csv 
+#'             data.dir/HIV.csv
+#'          
+#' @param country character, country name
+#' @param beg.year integer/numeric, beginning of period of estimation
+#' @param end.year integer/numeric, end of period of estimation
+#' @param usingGoogleSheets logical, TRUE if using googlesheets interface
+#'                                  FALSE if loading .csv's
+#' @param doBenchmark logical, if TRUE benchmark to IGME ests in Results.csv                               
+#'                                    
+## If FALSE please visit
+## https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0
+## and download most recent version of the .csv's
+#' @param data.dir character, path to folder containing a folder with the
+#'                            country's name which contains all the countrys
+#'                            data including folders dhsStata and dhsFlat
+#' @param code.dir.rel character, relative path from data.dir to folder containing
+#'                                the three files sourced or read above
+#' @param shapes.sub.dir character, subdirectory of data.dir containing polygon files
+#' @param igme.dir.rel character, relative path from data.dir to folder containing
+#'                                Results.csv (most recent UN IGME National Ests)
+#' @param ihme.dir.rel character, relative path from data.dir to folder containing
+#'                                ADM*_Y2019M10D16.csv (most recent IHME Ests)
+#' @param hiv.dir.rel charcter, relative path from data.dir to folder containing
+#'                              HIVAdjustments.rda
+#' @param hand.dir.rel character, relative path from data.dir to folder containing
+#'                                "by hand" scripts for country specific code
+#'                                Currently this only contains:
+#'                                folder.name/IHMEHand_CountryName.R   
+#'                                to match IHME area names with ours, 
+#'                                but this function could be expanded
+#'                                for more robust reproducibility/replicability
+#'                                                                                                                                                   
 
 rm(list = ls())
 
@@ -61,10 +98,6 @@ if(usingGoogleSheets){
   SurveyInfo <- range_read(sheet_key, sheet = "SurveyInfo")
   HIV.sheet <- range_read(sheet_key, sheet = "HIV")
 }else{
-  
-  ## If using please visit
-  ## https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0
-  ## and download most recent version of the .csv's
   CountryList <- read.csv('CountryList.csv')
   SurveyInfo <- read.csv('SurveyInfo.csv')
   HIV.sheet <- read.csv('HIV.csv')
