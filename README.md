@@ -78,11 +78,15 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
      * Plots:
        - Creates directory: folder.name/Plots/Direct
        -  Polygon plots direct estimates by administrative division
-          - By survey: data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_poly_BySurvey_Period.pdf, where \*: natl, admin1, admin2
-          - Meta-analysis estimator: data.dir/folder.name/Plots/CountryName_\*\_direct_poly_Meta.pdf, where \*: natl, admin1, admin2
+          - **By survey:** data.dir/folder.name/Plots/Direct/\*\/CountryName_\*\_direct_poly_BySurvey_Period.pdf
+            -   \*: National, Admin1, Admin2 in the file path and natl, admin1, admin2 in the file name
+          - **Meta-analysis estimator:** data.dir/folder.name/Plots/Direct/\*\/CountryName_\*\_direct_poly_Meta.pdf
+            -   \*: National, Admin1, Admin2 in the file path and natl, admin1, admin2 in the file name
           - if a country requires HIV adjustment, the plots display the adjusted estimates
        - Spaghetti plots of direct estimates by administrative division
-         - data.dir/folder.name/Plots/Direct/CountryName_\*\_direct_spaghetti.png, where \*: natl, admin1, admin2 and (for some reason) data.dir/folder.name/Plots/Direct/CountryName_natl_direct_yearly_spaghetti.png
+         - data.dir/folder.name/Plots/Direct/\*\/CountryName_\*\_direct_spaghetti.png
+            -  \*: National, Admin1, Admin2 in the file path and natl, admin1, admin2 in the file name
+         -  (for some reason) data.dir/folder.name/Plots/Direct/National/CountryName_natl_direct_yearly_spaghetti.png
          - if a country requires HIV adjustment, the plots display the adjusted estimates
   3. **SmoothedDirect.R**
       * Uses output of **DataProcessing.R** and **DirectEstimates.R** to get estimates of child mortality smoothed in space and time, benchmarks to UN IGME when `doBenchmark == TRUE`
@@ -95,6 +99,8 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
           - Sections: Fit smoothing model, Benchmarking
         - `getAdjusted()`: takes output of `aggregateSurvey()` (or `getDirectList()`) and benchmarks to UN IGME estimates
           - Sections: Benchmarking
+        - `mapPlot()': takes output of `getSmoothed()` and plots median estimates of U5MR from smoothed direct model by 5-year period
+          - Sections: Polygon plots  
       * Products:
         - `res.natl`
            - Section: Fit smoothing model (National), Benchmarking (National)
@@ -103,19 +109,18 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
            - Section: Fit smoothing model (National), Benchmarking (National Yearly)
            - Output: data.dir/folder.name/CountryName_res_natl_yearly_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_natlBench_yearly_SmoothedDirect.rda
         - `res.admin1`
-           - Section: Fit smoothing model (National), Benchmarking (National Yearly)
+           - Section: Fit smoothing model (Admin1), Benchmarking (Admin1)
            - Output: data.dir/folder.name/CountryName_res_admin1_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_admin1Bench_SmoothedDirect.rda
-        - `res.admin2`
-           - Section: Fit smoothing model (National), Benchmarking (National Yearly)
-           - Output: data.dir/folder.name/CountryName_res_admin1_SmoothedDirect.rda, data.dir/folder.name/CountryName_res_admin1Bench_SmoothedDirect.rda
-      * Plots:
+       * Plots:
          - Creates directory: data.dir/folder.name/Plots/SmoothedDirect
          - `SUMMER` plots using `plot`, plots benchmarked results if `doBenchmark == TRUE`
-            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmoothedDirect.pdf
+            - data.dir/folder.name/Plots/SmoothedDirect/\*\/CountryName_\*\_SmoothedDirect.pdf
+              - \*: National, Admin1, Admin2 in the file path and natl, admin1, admin2 in the file name 
          - Spaghetti Plots
-            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmothedDirect_spaghetti\*\.pdf  
-         - Polygon Plots (better to use `SUMMER::mapPlot` maybe)
-            - data.dir/folder.name/Plots/SmoothedDirect/CountryName_\*\_SmoothedDirect_poly.pdf 
+            - data.dir/folder.name/Plots/SmoothedDirect/\*\/CountryName_\*\_SmoothedDirect_spaghetti\*\.pdf
+              - \*: National, Admin1, Admin2 in the file path and natl, admin1, admin2 in the file name 
+         - Polygon Plots with `SUMMER::mapPlot`
+            - data.dir/folder.name/Plots/SmoothedDirect/Admin1/CountryName_Admin1_SmoothedDirect_poly.pdf 
   5. **Betabinomial.R**  
      * Uses output of **DataProcessing.R** to get model-based discrete hazards estimates of child mortality smoothed in space and time, adjusts for HIV when appropriate and benchmarks to UN IGME when `doBenchmark == TRUE`
      * Associated `SUMMER` functions:
