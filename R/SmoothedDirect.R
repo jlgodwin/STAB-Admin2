@@ -70,7 +70,6 @@ library(survey)
 library(ggplot2)
 library(gridExtra)
 
-
 ## Parameters ####
 
 country <- "Togo"
@@ -345,19 +344,19 @@ data.admin1 <- aggregateSurvey(direct.admin1)
 
 ## Fit smoothing model ####
 
-proj.per <- paste(end.year+1, end.year+5, sep = "-")
+#proj.per <- paste(end.year+1, end.year+5, sep = "-")
 
 ### National ####
 fit.natl <- smoothDirect(data.natl, Amat = NULL,
                          type.st = 4,
-                         year_label = c(periods, proj.per),
-                         year_range = c(beg.year, end.year + 5),
+                         year_label = periods,
+                         year_range = c(beg.year, end.year),
                          is.yearly = FALSE)
 res.natl <- getSmoothed(fit.natl, 
-                        year_range = c(beg.year, end.year+5),
-                        year_label = c(periods, proj.per))
+                        year_range = c(beg.year, end.year),
+                        year_label = periods)
 res.natl$years.num <- seq(beg.year+2,
-                          end.year+5,
+                          end.year,
                           5)
 res.natl$region.gadm <- country
 head(res.natl)
@@ -371,13 +370,13 @@ save(res.natl,
 
 fit.natl.yearly <- smoothDirect(data.natl.yearly,
                                 Amat = NULL,
-                                year_label = as.character(beg.year:(end.year + 5)),
-                                year_range = c(beg.year, end.year + 5),
+                                year_label = as.character(beg.year:end.year),
+                                year_range = c(beg.year, end.year),
                                 is.yearly = F)
 res.natl.yearly <- getSmoothed(fit.natl.yearly,
-                               year_range = c(beg.year, end.year + 5),
-                               year_label = as.character(beg.year:(end.year + 5)))
-res.natl.yearly$years.num <- beg.year:(end.year + 5)
+                               year_range = c(beg.year, end.year),
+                               year_label = as.character(beg.year:end.year))
+res.natl.yearly$years.num <- beg.year:end.year
 res.natl.yearly$region.gadm <- country
 head(res.natl.yearly)
 tail(res.natl.yearly)
@@ -394,16 +393,16 @@ save(res.natl.yearly,
 fit.admin1 <- smoothDirect(data.admin1,
                            Amat = admin1.mat,
                            type.st = 4,
-                           year_label = c(periods, "2020-2024"),
-                           year_range = c(1990, 2024),
+                           year_label = periods,
+                           year_range = beg.year:end.year,
                            is.yearly = F)
 res.admin1 <- getSmoothed(fit.admin1,
                           Amat = admin1.mat,
-                          year_range = c(1990, 2024),
-                          year_label = c(periods, "2020-2024"))
-res.admin1$years.num <- seq(beg.year+2, end.year+5,
+                          year_range = c(beg.year, end.year),
+                          year_label = periods)
+res.admin1$years.num <- seq(beg.year+2, end.year,
                             5)[match(res.admin1$years,
-                                     c(periods, "2020-2024"))]
+                                     periods)]
 res.admin1$region.gadm <- admin1.names$GADM[match(res.admin1$region,
                                                   admin1.names$Internal)]
 head(res.admin1)
@@ -441,18 +440,16 @@ if(doBenchmark){
   fit.natl <- smoothDirect(data.natl, 
                            Amat = NULL,
                            type.st = 4,
-                           year_label = c(periods,
-                                          proj.per),
+                           year_label = periods,
                            year_range = c(beg.year,
-                                          end.year + 5),
+                                          end.year),
                            is.yearly = F)
   res.natl <- getSmoothed(fit.natl, 
-                          year_label = c(periods,
-                                         proj.per),
+                          year_label = periods,
                           year_range = c(beg.year,
-                                         end.year + 5))
-  res.natl$years.num <- seq(beg.year+2,
-                            end.year+5, 5)
+                                         end.year))
+  res.natl$years.num <- seq(beg.year + 2,
+                            end.year, 5)
   res.natl$region.gadm <- country
   head(res.natl)
   tail(res.natl)
@@ -475,21 +472,19 @@ if(doBenchmark){
   fit.admin1 <- smoothDirect(data.admin1,
                              Amat = admin1.mat,
                              type.st = 4,
-                             year_label = c(periods,
-                                            proj.per),
+                             year_label = periods,
                              year_range = c(beg.year,
-                                            end.year + 5),
+                                            end.year),
                              is.yearly = F)
   
   res.admin1 <- getSmoothed(fit.admin1,
                             Amat = admin1.mat,
-                            year_label = c(periods,
-                                           proj.per),
+                            year_label = periods,
                             year_range = c(beg.year,
-                                           end.year + 5))
-  res.admin1$years.num <- seq(beg.year+2, end.year+5,
+                                           end.year))
+  res.admin1$years.num <- seq(beg.year+2, end.year,
                               5)[match(res.admin1$years,
-                                       c(periods, proj.per))]
+                                       periods)]
   res.admin1$region.gadm <- admin1.names$GADM[match(res.admin1$region,
                                                     admin1.names$Internal)]
   head(res.admin1)
@@ -516,14 +511,14 @@ if(doBenchmark){
   fit.natl.yearly <- smoothDirect(data.natl.yearly,
                                   Amat = NULL,
                                   type.st = 4,
-                                  year_label = as.character(beg.year:(end.year + 5)),
+                                  year_label = as.character(beg.year:end.year),
                                   year_range = c(beg.year,
-                                                 (end.year + 5)),
+                                                 end.year),
                                   is.yearly = F)
   res.natl.yearly<- getSmoothed(fit.natl.yearly, 
-                                year_label = as.character(beg.year:(end.year + 5)),
-                                year_range = c(beg.year, (end.year + 5)))
-  res.natl.yearly$years.num <- beg.year:(end.year+5)
+                                year_label = as.character(beg.year:end.year),
+                                year_range = c(beg.year,end.year ))
+  res.natl.yearly$years.num <- beg.year:end.year
   res.natl.yearly$region.gadm <- country
   head(res.natl.yearly)
   tail(res.natl.yearly)
@@ -546,8 +541,16 @@ if(!dir.exists(paths = paste0(folder.name,
 }
 
 ### National ####
+if(!dir.exists(paths = paste0(folder.name,
+                              '/Plots/',
+                              'SmoothedDirect/National'))){
+  dir.create(path = paste0(folder.name, 
+                           '/Plots/',
+                           'SmoothedDirect/National'))
+}
+
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/National/",
            country,
            '_natl_SmoothedDirect.pdf'),
     height = 6, width = 6)
@@ -557,8 +560,16 @@ plot(res.natl,
 dev.off()
 
 ### Admin 1 ####
+if(!dir.exists(paths = paste0(folder.name,
+                              '/Plots/',
+                              'SmoothedDirect/Admin1'))){
+  dir.create(path = paste0(folder.name, 
+                           '/Plots/',
+                           'SmoothedDirect/Admin1'))
+}
+
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/Admin1/",
            country,
            '_admin1_SmoothedDirect.pdf'),
     height = 6, width = 6)
@@ -577,7 +588,7 @@ plot.years <- seq(beg.year + 2,
                   end.year, 5)
 
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/National/",
            country, 
            '_natl_SmoothedDirect_spaghetti.pdf'),
     height = 6, width = 6)
@@ -754,7 +765,7 @@ dev.off()
 
 
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/National/",
            country,
            '_natl_yearly_SmoothedDirect_spaghetti.pdf'),
     height = 6, width = 6)
@@ -925,7 +936,7 @@ dev.off()
 ### Admin 1 ####
 
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/Admin1/",
            country,
            '_admin1_SmoothedDirect_spaghetti.pdf'),
     height = 6, width = 6)
@@ -1062,11 +1073,8 @@ pdf(paste0(folder.name,
 }
 dev.off()
 
-
-
-
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/Admin1/",
            country,
            '_admin1_SmoothedDirect_spaghetti2.pdf'),
     height = 4, width = 8)
@@ -1205,34 +1213,25 @@ dev.off()
 
 ## Polygon plots ####
 ### Admin 1 #### 
-med.palette <- brewer.pal(n = 7, name = "Purples")
-med.int <- classIntervals(round(res.admin1$median, 3),
-                          n = 7, style = 'jenks')
-med.col <- findColours(med.int, med.palette)
 
 pdf(paste0(folder.name,
-           "/Plots/SmoothedDirect/",
+           "/Plots/SmoothedDirect/Admin1/",
            country,
            '_admin1_', 
-           'SmoothedDirect_poly.pdf'),
-    height = 4, width = 8)
+           'SmoothedDirect_poly.pdf'))
 {
-  par(mfrow = c(2,4),
-      lend = 1)
-  for(year in periods){
-    idx <- which(res.admin1$years == year) 
-    plot(poly.adm1, border = F, col = med.col[idx],
-         axes = F, main = year)
-  }
-  plot(NA, xlim = c(0,1),
-       ylim = c(0,1), 
-       axes = F, xlab = "", ylab = "")
-  legend(x = "center",
-         inset = 0,
-         legend = names(attr(med.col, 'table')),
-         fill = med.palette,
-         cex= .75, horiz = FALSE, 
-         bty = 'n')
+  print(SUMMER::mapPlot(data = res.admin1,
+                        is.long = T, 
+                        variables = "years", 
+                        values = "median",
+                        direction = -1,
+                        geo = poly.adm1,
+                        ncol = 3,
+                        legend.label = "U5MR",
+                        per1000 = TRUE,
+                        by.data = "region.gadm",
+                        by.geo = paste0("NAME_1")))
+  
 }
 dev.off()
 
