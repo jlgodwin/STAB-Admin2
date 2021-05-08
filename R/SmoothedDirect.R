@@ -337,9 +337,9 @@ if(useHIVAdj){
 
 
 ## Aggregate surveys ####
-data.natl <- aggregateSurvey(direct.natl)
-data.natl.yearly <- aggregateSurvey(direct.natl.yearly)
-data.admin1 <- aggregateSurvey(direct.admin1)
+data.natl <- SUMMER::aggregateSurvey(direct.natl)
+data.natl.yearly <- SUMMER::aggregateSurvey(direct.natl.yearly)
+data.admin1 <- SUMMER::aggregateSurvey(direct.admin1)
 
 
 ## Fit smoothing model ####
@@ -347,12 +347,12 @@ data.admin1 <- aggregateSurvey(direct.admin1)
 #proj.per <- paste(end.year+1, end.year+5, sep = "-")
 
 ### National ####
-fit.natl <- smoothDirect(data.natl, Amat = NULL,
+fit.natl <- SUMMER::smoothDirect(data.natl, Amat = NULL,
                          type.st = 4,
                          year_label = periods,
                          year_range = c(beg.year, end.year),
                          is.yearly = FALSE)
-res.natl <- getSmoothed(fit.natl, 
+res.natl <- SUMMER::getSmoothed(fit.natl, 
                         year_range = c(beg.year, end.year),
                         year_label = periods)
 res.natl$years.num <- seq(beg.year+2,
@@ -368,12 +368,12 @@ save(res.natl,
      file = paste0(folder.name,
                    '/', file.out))
 
-fit.natl.yearly <- smoothDirect(data.natl.yearly,
+fit.natl.yearly <- SUMMER::smoothDirect(data.natl.yearly,
                                 Amat = NULL,
                                 year_label = as.character(beg.year:end.year),
                                 year_range = c(beg.year, end.year),
                                 is.yearly = F)
-res.natl.yearly <- getSmoothed(fit.natl.yearly,
+res.natl.yearly <- SUMMER::getSmoothed(fit.natl.yearly,
                                year_range = c(beg.year, end.year),
                                year_label = as.character(beg.year:end.year))
 res.natl.yearly$years.num <- beg.year:end.year
@@ -390,13 +390,13 @@ save(res.natl.yearly,
 
 ### Admin1 ####
 
-fit.admin1 <- smoothDirect(data.admin1,
+fit.admin1 <- SUMMER::smoothDirect(data.admin1,
                            Amat = admin1.mat,
                            type.st = 4,
                            year_label = periods,
                            year_range = beg.year:end.year,
                            is.yearly = F)
-res.admin1 <- getSmoothed(fit.admin1,
+res.admin1 <- SUMMER::getSmoothed(fit.admin1,
                           Amat = admin1.mat,
                           year_range = c(beg.year, end.year),
                           year_label = periods)
@@ -431,20 +431,20 @@ if(doBenchmark){
   benchmark$ratio <- data.natl$mean/igme.period$median
   
   ### National ####
-  data.natl <- getAdjusted(data.natl,
+  data.natl <- SUMMER::getAdjusted(data.natl,
                            ratio = benchmark,
                            logit.lower = NULL,
                            logit.upper = NULL,
                            prob.upper = "upper",
                            prob.lower = "lower")
-  fit.natl <- smoothDirect(data.natl, 
+  fit.natl <- SUMMER::smoothDirect(data.natl, 
                            Amat = NULL,
                            type.st = 4,
                            year_label = periods,
                            year_range = c(beg.year,
                                           end.year),
                            is.yearly = F)
-  res.natl <- getSmoothed(fit.natl, 
+  res.natl <-SUMMER:: getSmoothed(fit.natl, 
                           year_label = periods,
                           year_range = c(beg.year,
                                          end.year))
@@ -462,14 +462,14 @@ if(doBenchmark){
        file = paste0(folder.name,
                      '/', file.out))
   ## Admin 1 ####
-  data.admin1 <- getAdjusted(data.admin1,
+  data.admin1 <- SUMMER::getAdjusted(data.admin1,
                              ratio = benchmark,
                              logit.lower = NULL,
                              logit.upper = NULL,
                              prob.upper = "upper",
                              prob.lower = "lower")
   
-  fit.admin1 <- smoothDirect(data.admin1,
+  fit.admin1 <- SUMMER::smoothDirect(data.admin1,
                              Amat = admin1.mat,
                              type.st = 4,
                              year_label = periods,
@@ -477,7 +477,7 @@ if(doBenchmark){
                                             end.year),
                              is.yearly = F)
   
-  res.admin1 <- getSmoothed(fit.admin1,
+  res.admin1 <- SUMMER::getSmoothed(fit.admin1,
                             Amat = admin1.mat,
                             year_label = periods,
                             year_range = c(beg.year,
@@ -502,20 +502,20 @@ if(doBenchmark){
                           ratio = NA)
   benchmark$ratio <- data.natl.yearly$mean/(igme.ests$OBS_VALUE/1000)[match(beg.year:end.year,
                                                                             igme.ests$year)]
-  data.natl.yearly <- getAdjusted(data.natl.yearly,
+  data.natl.yearly <- SUMMER::getAdjusted(data.natl.yearly,
                                   ratio = benchmark,
                                   logit.lower = NULL,
                                   logit.upper = NULL,
                                   prob.upper = "upper",
                                   prob.lower = "lower")
-  fit.natl.yearly <- smoothDirect(data.natl.yearly,
+  fit.natl.yearly <- SUMMER::smoothDirect(data.natl.yearly,
                                   Amat = NULL,
                                   type.st = 4,
                                   year_label = as.character(beg.year:end.year),
                                   year_range = c(beg.year,
                                                  end.year),
                                   is.yearly = F)
-  res.natl.yearly<- getSmoothed(fit.natl.yearly, 
+  res.natl.yearly<- SUMMER::getSmoothed(fit.natl.yearly, 
                                 year_label = as.character(beg.year:end.year),
                                 year_range = c(beg.year,end.year ))
   res.natl.yearly$years.num <- beg.year:end.year
