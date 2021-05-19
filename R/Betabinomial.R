@@ -190,10 +190,6 @@ fitBetabin <- function(country, type.st, beg.year,
     surveys <- SurveyInfo$`Survey Year`[SurveyInfo$Country == country &
                                           SurveyInfo$`GPS?` == "Y"]
     
-    frames <- SurveyInfo[SurveyInfo$Country == country, 
-                         c("Survey Year", "Frame", "PropFrame?")]
-    names(frames)[match("Survey Year", names(frames))] <- "Survey.Year"
-    
     useGADM <- unique(SurveyInfo$useGADM[SurveyInfo$Country == country &
                                            SurveyInfo$`GPS?` == "Y"])
     if(useGADM == "N"){
@@ -205,8 +201,6 @@ fitBetabin <- function(country, type.st, beg.year,
   }else{
     surveys <- SurveyInfo$Survey.Year[SurveyInfo$Country == country &
                                         SurveyInfo$GPS. == "Y"]
-    frames <- SurveyInfo[SurveyInfo$Country == country, 
-                         c("Survey.Year", "Frame","PropFrame.")]
     
     useGADM <- unique(SurveyInfo$useGADM[SurveyInfo$Country == country &
                                            SurveyInfo$GPS. == "Y"])
@@ -218,7 +212,6 @@ fitBetabin <- function(country, type.st, beg.year,
                                                       SurveyInfo$GPS. == "Y"])
     }
   }
-  frames <- frames[!is.na(frames$Frame),]
   
   ## Load data ####
   
