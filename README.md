@@ -93,7 +93,7 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
       * Associated `SUMMER` functions:
         - `aggregateSurvey()`: takes output of `getDirectList()` to compute meta-analysis estimator for each area and time (i.e. aggregating across surveys)
           - Section:  Aggregate surveys
-        - `smoothDirect()`: takes output of `aggregateSurvey()` (or `getDirectList()`) and fits spatiotemporal smoothing model in `INLA`
+        - `smoothDirect()`: takes output of `aggregateSurvey()` (or `getDirectList()`) and fits area-level spatiotemporal smoothing model in `INLA`
           - Sections: Fit smoothing model, Benchmarking
         - `getSmoothed()`: takes output of `smoothDirect()` to get spatiotemporal estimates of child mortality in easily usable format
           - Sections: Fit smoothing model, Benchmarking
@@ -123,6 +123,15 @@ Click here for the [**COMMAND CENTER**](https://docs.google.com/spreadsheets/d/1
             - data.dir/folder.name/Plots/SmoothedDirect/Admin1/CountryName_Admin1_SmoothedDirect_poly.pdf 
   5. **Betabinomial.R**  
      * Uses output of **DataProcessing.R** to get model-based discrete hazards estimates of child mortality smoothed in space and time, adjusts for HIV when appropriate and benchmarks to UN IGME when `doBenchmark == TRUE`
+     * `doNatl` logical for fitting RW2 national model
+     * `doAdmin1` or `doAdmin2` logical for fitting either Admin1 or Admin2 level model with RW2 main temporal effects
+     * `doRandomSlopesRW1` or `doRandomSlopesAR1` for fitting the respective temporal model in the Knorr-Held Type III or Type IV
+     * `refit` refits the unbenchmarked model
+     * `refitBench` refits benchmarked model
+     * `loadSamples` loads last posterior draws (should be updated to be `loadSamples` and `loadSamplesBench`)
      * Associated `SUMMER` functions:
-       - `smoothCluster()`:
-       - `getSmoothed()`:
+       - `smoothCluster()`: takes output of `getBirths()` and fits spatiotemporal unit-level model in `INLA` and returns a list of objects related to model estimation
+       - `getDiag()`: takes output of `smoothCluster()` and returns smaller object of latent terms determined by passing specifying `field = "space"`, `field = "time"`, or `field = "spacetime"`
+       - `getSmoothed()`: takes output of `smoothCluster()` and returns a list of desired results and posterior summaries of the estimated model including posterior summaries of U5MR by area and year and draws from the joint posterior distribution of model parameters, and the transformation of those draws into U5MR by area and year
+     * Products:
+       - 
