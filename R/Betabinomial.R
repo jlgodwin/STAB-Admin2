@@ -1,7 +1,13 @@
 #' filename: Betabinomial.R
 #' @author Jessica Godwin
-#' 
-#' last edit: 20210131  
+#' @description Overly complicated function designed to fit the BB-not-quite-8 
+#'              (there are bones for an equivalent BB8 when we are ready to go back to that)
+#'              with the initial intention of array batch job submission, when we
+#'              quickly found out there was an wide range of memory and time demands.
+#'              These are submitted by country and admin level according to our job
+#'              requests that seem to work for each country.
+#' last edit: 20210131  - methods
+#'            20210519  - tidying
 #' sources: LoadCommandCenter.R
 #'          IHMEHand_CountryName.R
 #'
