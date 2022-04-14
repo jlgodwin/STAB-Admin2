@@ -1,0 +1,2188 @@
+#' filename: Betabinomial.R
+#' @author Jessica Godwin
+#' 
+#' last edit: 20210131  
+#' sources: LoadCommandCenter.R
+#'          IHMEHand_CountryName.R
+#'
+#' loads: all files in /shapeFiles_gadm 
+#'        CountryName_Amat_Names.rda
+#'        CountryName_Amat.rda
+#'        CountryName_cluster_dat.rda
+#'        Data/HIV/HIVAdjustments.rda
+#'        CountryName_HIVnames.key.rda (if exists)
+#'        Results.csv
+#'  
+#' @param country character, country name
+#' @param beg.year integer/numeric beginning of period of estimation
+#' @param end.year integer/numeric end of period of estimation
+#' @param usingGoogleSheets logical TRUE if using googlesheets interface
+#'                                  FALSE if loading .csv's
+#' @param cluster logical TRUE if running on cluster (set's filepaths)
+#'                        FALSE if on home machine, define your own relative paths
+#' @param type.st integer/numeric can take values 1, 2, 3, 4, represents which
+#'                        spacetime interaction model will be used
+#'                        defined by Knorr-Held (2000)
+#' @param doBenchmark logical if TRUE, benchmark to UN IGME
+#' @param doRandomSlopesRW1 logical if TRUE & type.st %in% c(3,4)
+#'                                  spacetime interaction with
+#'                                  RW1 temporal model is fit
+#' @param doRandomSlopesAR1 logical if TRUE & type.st %in% c(3,4)
+#'                                  spacetime interaction with
+#'                                  AR1 temporal model is fit  
+#' @param doNatl logical if TRUE fit national model (RW2)
+#' @param doAdmin1 logical if TRUE fit subnational model to Admin1
+#' @param doAdmin2 logcal if TRUE fit subnational model to Admin2 
+#' @param refit logical if TRUE, refit the unbenchmarked model
+#' @param refitBench logical if TRUE, refit benchmarking model
+#' @param loadSamples logical if TRUE, load posterior samples objects
+#'                             (useful if you need to refit the 
+#'                             benchmarking model and do not want to
+#'                             refit the unbenchmarked model.) 
+#' @param data.dir character filepath of the directory which contains
+#'                           folders for each country each of which contains
+#'                           cluster level data, i.e.
+#'                           paste0(data.dir,
+#'                           country, "/CountryName_cluster_dat.rda")
+#' @param code.dir.rel character relative filepath from data.dir to 
+#'                               the directory containing
+#'                              LoadCommandCenter.R     
+#' @param igme.dir.rel character relative filepath from data.dir to 
+#'                               the directory IGME estimates
+#'                               Results.csv
+#' @param shapes.sub.dir character subdirectory of data.dir
+#'                                 containing
+#'                                 CountryName_Amat.rda
+#'                                 CountryName_Amat_Names.rda
+#'                                 i.e, paste0(data.dir,
+#'                                             country, shapes.sub.dir,
+#'                                             '/CountryName_Amat.rda') 
+#' @param hiv.dir.rel character relative path from data.dir to directory 
+#'                              containing 
+#'                              HIVAdjustments.rda
+
+
+rm(list = ls())
+## Libraries ####
+#devtools::install_github("bryandmartin/SUMMER",
+#                         build_vignettes = F, force = T)
+library(SUMMER)
+# help(package = "SUMMER", help_type = "html")
+# utils::browseVignettes(package = "SUMMER")
+library(classInt)
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(rgdal)
+library(scales)
+library(INLA)
+library(survey)
+library(ggplot2)
+library(gridExtra)
+library(parallel)
+
+
+## Parameters ####
+country <- "Togo"
+beg.year <- 1990
+end.year <- 2019
+usingGoogleSheets <- FALSE
+cluster <- TRUE
+type.st <- 4
+doRandomSlopesRW1 <- TRUE
+doRandomSlopesAR1 <- FALSE
+doBenchmark <- TRUE
+doNatl <- FALSE
+doAdmin1 <- TRUE
+doAdmin2 <- FALSE
+refit <-  TRUE
+refitBench <- FALSE
+loadSamples <- FALSE
+
+message("If have the same subfolder structure as 
+        AfricaAdmin2Estimates/Data/countryDataFolders/. 
+        Do nothing!
+        Otherwise, edit the following paths as needed.")
+
+### Set relative paths ####
+
+if(cluster){
+  data.dir <- './toCluster'
+  code.dir.rel <- '../../Analysis/R'
+  igme.dir.rel <- '..'
+  shapes.sub.dir <- '/shapeFiles_gadm'
+  hiv.dir.rel <- '..'
+}else{
+  data.dir <- '~/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/'
+  code.dir.rel <- '../../Analysis/R'
+  igme.dir.rel <- '../../Analysis/R'
+  shapes.sub.dir <- '/shapeFiles_gadm'
+  hiv.dir.rel <- '../HIV/'
+}
+
+setwd(data.dir)
+
+if(usingGoogleSheets){
+  if(!exists("sheet_key", envir = .GlobalEnv)){
+    source(paste0(code.dir.rel,'/LoadCommandCenter.R'))
+  }
+  CountryList <- range_read(sheet_key, sheet = "CountryList")
+}
+
+## Function definition ####
+fitBetabin <- function(country, type.st, beg.year,
+                       end.year, 
+                       doBenchmark,
+                       doNatl,
+                       doAdmin2,
+                       doAdmin1, 
+                       refit = TRUE,
+                       refitBench = FALSE,
+                       loadSamples = FALSE,
+                       doRandomSlopesRW1,
+                       doRandomSlopesAR1,
+                       data.dir,
+                       code.dir.rel,
+                       igme.dir.rel,
+                       shapes.sub.dir,
+                       hiv.dir.rel,
+                       usingGoogleSheets){
+  
+  #  setwd(data.dir)
+  
+  ## Load metadata #### 
+  if(usingGoogleSheets){
+    CountryList <- range_read(sheet_key, sheet = "CountryList")
+    SurveyInfo <- range_read(sheet_key, sheet = "SurveyInfo")
+    HIV.sheet <- range_read(sheet_key, sheet = "HIV")
+  }else{
+    
+    ## If using please visit
+    ## https://docs.google.com/spreadsheets/d/1GgrysoVHM2bO6DUZx8Cmj7WICKZ5KpTay0GOT72zK24/edit#gid=0
+    ## and download most recent version of the .csv's
+    CountryList <- read.csv('CountryList.csv')
+    SurveyInfo <- read.csv('SurveyInfo.csv')
+    HIV.sheet <- read.csv('HIV.csv')
+  }
+  
+  message(paste0("Starting function for ",
+                 country, ".\n"))
+  
+  folder.name <- CountryList$folderName[CountryList$Country == country]
+  gadm.abbrev <- CountryList$gadmCode[CountryList$Country == country]
+  n.survey <- CountryList$nSurvey[CountryList$Country == country]
+  
+  ## Use HIV Adjusted data? ####
+  
+  HIV.country <- as.data.frame(HIV.sheet[HIV.sheet$Country == country,])
+  
+  if(usingGoogleSheets){
+    useHIVAdj <- (unique(HIV.country$`MM Adj by IGME`) == "Y" &
+                    unique(HIV.country$`UNAIDS data?`) == "Y")
+  }else{
+    useHIVAdj <- (unique(HIV.country$MM.Adj.by.IGME) == "Y" & 
+                    unique(HIV.country$UNAIDS.data.) == "Y")
+  }
+  
+  ## Get Survey years #### 
+  if(usingGoogleSheets){
+    surveys <- SurveyInfo$`Survey Year`[SurveyInfo$Country == country &
+                                          SurveyInfo$`GPS?` == "Y"]
+    
+    frames <- SurveyInfo[SurveyInfo$Country == country, 
+                         c("Survey Year", "Frame", "PropFrame?")]
+    names(frames)[match("Survey Year", names(frames))] <- "Survey.Year"
+    
+#    useGADM <- unique(SurveyInfo$useGADM[SurveyInfo$Country == country &
+#                                           SurveyInfo$`GPS?` == "Y"])
+#    if(useGADM == "N"){
+#      admin1poly.alt <- unique(SurveyInfo$Admin1Alt[SurveyInfo$Country == country &
+ #                                                     SurveyInfo$`GPS?` == "Y"])
+  #    admin2poly.alt <- unique(SurveyInfo$Admin2Alt[SurveyInfo$Country == country &
+   #                                                   SurveyInfo$`GPS?` == "Y"])
+    #}
+  }else{
+    surveys <- SurveyInfo$Survey.Year[SurveyInfo$Country == country &
+                                        SurveyInfo$GPS. == "Y"]
+    frames <- SurveyInfo[SurveyInfo$Country == country, 
+                         c("Survey.Year", "Frame","PropFrame.")]
+    
+    #useGADM <- unique(SurveyInfo$useGADM[SurveyInfo$Country == country &
+    #                                       SurveyInfo$GPS. == "Y"])
+    
+    #if(useGADM == "N"){
+    #  admin1poly.alt <- unique(SurveyInfo$Admin1Alt[SurveyInfo$Country == country &
+     #                                                 SurveyInfo$GPS. == "Y"])
+      #admin2poly.alt <- unique(SurveyInfo$Admin2Alt[SurveyInfo$Country == country &
+       #                                               SurveyInfo$GPS. == "Y"])
+    #}
+  }
+  frames <- frames[!is.na(frames$Frame),]
+  
+  ## Load data ####
+  
+  load(paste0(folder.name, '/',
+  	      country,
+              '_cluster_dat.rda'),
+       envir = .GlobalEnv)
+
+ load(paste0(folder.name,
+             shapes.sub.dir, '/',
+              country, '_Amat.rda'),
+       envir = .GlobalEnv)
+ load(paste0(folder.name,
+              shapes.sub.dir, '/',
+              country, '_Amat_Names.rda'),
+       envir = .GlobalEnv)
+  
+  mod.dat$years <- as.numeric(as.character(mod.dat$years))
+  dat.years <- sort(unique(mod.dat$years))
+  beg.years <- seq(beg.year,
+                   end.year, 5)
+  end.years <- beg.years + 4
+  periods <- paste(beg.years,
+                   end.years,
+                   sep = "-")
+  mod.dat$period <- as.character(cut(mod.dat$years,
+                                     breaks = c(beg.years,
+                                                beg.years[length(beg.years)]+5),
+                                     include.lowest = T,
+                                     right = F,
+                                     labels = periods))
+  mod.dat$strata.orig <- mod.dat$strata
+  mod.dat$strata <- mod.dat$urban
+  mod.dat$country <- as.character(country)
+  
+  
+  ### Load IGME ####
+  
+  file.list <- list.files(igme.dir.rel)
+  igme.file <- file.list[grepl("Results.csv", file.list)]
+  igme.ests <- read.csv(paste0(igme.dir.rel, '/',
+                               igme.file),
+                        header = T)
+  
+  igme.ests <- igme.ests[igme.ests$Indicator== "Under-five Mortality Rate" &
+                           igme.ests$Subgroup == "Total",]
+  names(igme.ests) <- gsub("X", "", names(igme.ests))
+  
+  igme.ests <- igme.ests[igme.ests$Country.Name == country,]
+  a <- reshape(igme.ests, 
+               idvar = c("Country.Name", "Quantile"), 
+               varying = list((1:dim(igme.ests)[2])[-c(1:5)]),
+               v.names = "OBS_VALUE",
+               direction = "long", 
+               times = names(igme.ests)[-c(1:5)])
+  igme.ests <- reshape(a, idvar = c("time"),
+                       v.names = "OBS_VALUE", 
+                       timevar = "Quantile", 
+                       direction = "wide")
+  
+  names(igme.ests)[grepl(".Lower",
+                         names(igme.ests))] <- "LOWER_BOUND"
+  names(igme.ests)[grepl(".Upper", 
+                         names(igme.ests))] <- "UPPER_BOUND"
+  names(igme.ests)[grepl(".Median",
+                         names(igme.ests))] <- "OBS_VALUE"
+  names(igme.ests)[grepl("time", 
+                         names(igme.ests))] <- "REF_DATE"
+  igme.ests$year <- as.numeric(as.character(igme.ests$REF_DATE)) - 0.5
+  igme.ests <- igme.ests[order(igme.ests$year),]
+  igme.ests <- igme.ests[igme.ests$year %in% beg.year:end.year,]
+  
+  ## National ####
+  
+  if(doNatl){
+    
+    mod.dat$region <- "All"
+    mod.dat$strata <- NA
+    
+    ### HIV Adjustment ####
+    if(useHIVAdj){
+      load(paste0(hiv.dir.rel,
+                  '/HIVAdjustments.rda'),
+           envir = .GlobalEnv)
+      
+      hiv.adj <- hiv.adj[hiv.adj$country == country, ]
+      
+      if(unique(hiv.adj$area)[1] == country){
+        natl.unaids <- T
+      }else{
+        natl.unaids <- F
+      }
+      
+      if(natl.unaids){
+        adj.frame <- hiv.adj
+        adj.varnames <- c("country", 
+                          "survey", "years")
+      }else{
+        adj.frame <- hiv.adj
+        
+        if(sum(grepl("HIVnames.key",
+                     list.files(paste0("./", folder.name)))) != 0){
+          
+          load(paste0(folder.name, '/',
+                      country,
+                      '_HIVnames.key.rda'),
+               envir = .GlobalEnv)
+          mod.dat <- merge(mod.dat,
+                           HIVnames.key[ ,c("LONGNUM", "LATNUM", "dhs.name")],
+                           by = c("LONGNUM", "LATNUM"))
+          names(mod.dat)[which(names(mod.dat) == 'dhs.name')] <- "area"
+        }else if(country == "Kenya"){
+          area.tmp <- unlist(lapply(strsplit(mod.dat$strata, "[.]"),
+                                    function(x){x[1]}))
+          area.tmp <- strsplit(area.tmp, " ")
+          area.tmp <- unlist(lapply(area.tmp,
+                                    function(x){
+                                      n.upper <- length(x)
+                                      
+                                      for(i in 1:n.upper){
+                                        x[i] <- paste0(toupper(substring(x[i], 1,1)),
+                                                       substring(x[i],2))
+                                      }
+                                      
+                                      out <- paste0(x, collapse = "")
+                                      return(out)
+                                    }))
+          area.tmp[area.tmp == "Northeastern"] <- "NorthEastern"
+          mod.dat$area <- area.tmp
+        }else if(sum(!(admin1.names$GADM %in% hiv.adj$area)) != 0){
+          mod.dat$area <- mod.dat$admin1.name
+        }
+        
+        adj.varnames <- c("country", "area",
+                          "survey", "years")
+      }
+      
+    }else{
+      adj.frame <- expand.grid(years = beg.year:end.year,
+                               country = country)
+      adj.frame$ratio <- 1
+      adj.varnames <- c("country", "years")
+    }
+    
+    
+    message(paste0("Starting unstratified, national model (RW2) for ",
+                   country, ".\n"))
+    
+    fit.natl <- smoothCluster(data = mod.dat, 
+                              Amat = NULL, 
+                              family = "betabinomial",
+                              overdisp.mean = -7.5,
+                              overdisp.prec = 0.39,
+                              year_label = beg.year:end.year,
+                              time.model = 'rw2',
+                              bias.adj = adj.frame,
+                              bias.adj.by = adj.varnames,
+                              age.groups = levels(mod.dat$age),
+                              age.n = c(1, 11, 12, 12, 12, 12),
+                              age.rw.group = c(1, 2, 3, 3, 3, 3),
+                              verbose = FALSE,
+                              survey.effect = TRUE)
+    save(fit.natl, 
+         file = paste0(folder.name, '/',
+                       country,
+                       '_rw2_natl.rda'))
+    
+    res.natl <- getSmoothed(inla_mod = fit.natl, 
+                            nsim = 1000, 
+                            draws = NULL, 
+                            save.draws = TRUE,
+                            save.draws.est = TRUE)
+    save(res.natl, 
+         file = paste0(folder.name, '/',
+                       country,
+                       '_res_rw2_natl.rda'))
+    
+    ## Benchmarking ####
+    
+    if(doBenchmark & !useHIVAdj){
+      
+      message(paste0("Starting unstratified, national (RW2) benchmarking model for ",
+                     country, ".\n"))
+      
+      bench.adj <- expand.grid(country = country,
+                               years = beg.year:end.year)
+      bench.adj$est <- bench.adj$igme <- NA
+      
+      for(i in 1:nrow(bench.adj)){
+        yr <- bench.adj$years[i]
+        bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+        
+        if(yr %in% beg.year:max(mod.dat$year)){
+          bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+        }else{
+          bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+        }         
+      }
+      bench.adj$ratio <- bench.adj$est/bench.adj$igme
+      save(bench.adj,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2_natlBenchmarks.rda'))
+      
+      fit.natl <- smoothCluster(data = mod.dat, 
+                                Amat = NULL,
+                                family = "betabinomial",
+                                overdisp.mean = -7.5,
+                                overdisp.prec = 0.39,
+                                year_label = beg.year:end.year,
+                                time.model = 'rw2',
+                                bias.adj = bench.adj,
+                                bias.adj.by = adj.varnames,
+                                age.groups = levels(mod.dat$age),
+                                age.n = c(1, 11, 12, 12, 12, 12),
+                                age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                verbose = FALSE,
+                                survey.effect = TRUE)
+      save(fit.natl, 
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2_natlBench.rda'))
+      
+      res.natl <- getSmoothed(inla_mod = fit.natl, 
+                              nsim = 1000, 
+                              draws = NULL, 
+                              save.draws = TRUE,
+                              save.draws.est = TRUE)
+      save(res.natl,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_res_rw2_natlBench.rda'))
+      
+    }
+    else if(doBenchmark & useHIVAdj){
+      
+      message(paste0("Starting unstratified, national (RW2) benchmarking model for ",
+                     country, ".\n"))
+      
+      bench.adj <- expand.grid(country = country,
+                               years = beg.year:end.year)
+      bench.adj$est <- bench.adj$igme <- NA
+      
+      for(i in 1:nrow(bench.adj)){
+        yr <- bench.adj$years[i]
+        bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+        
+        if(yr %in% beg.year:max(mod.dat$year)){
+          bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+        }else{
+          bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+        }          
+      }
+      
+      bench.adj$ratio <- bench.adj$est/bench.adj$igme
+      save(bench.adj,
+           file = paste0(folder.name, '/',
+                         country, 
+                         '_rw2_natlBenchmarks.rda'))
+      bench.adj <- merge(bench.adj, hiv.adj,
+                         by = c('country', 'years'),
+                         suffixes = c('.bench', '.hiv'))
+      bench.adj$ratio <- bench.adj$ratio.bench*bench.adj$ratio.hiv
+      
+      fit.natl <- smoothCluster(data = mod.dat,
+                                Amat = NULL,
+                                family = "betabinomial",
+                                overdisp.mean = -7.5,
+                                overdisp.prec = 0.39,
+                                year_label = beg.year:end.year,
+                                time.model = 'rw2',
+                                bias.adj = bench.adj,
+                                bias.adj.by = adj.varnames,
+                                age.groups = levels(mod.dat$age),
+                                age.n = c(1, 11, 12, 12, 12, 12),
+                                age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                verbose = FALSE,
+                                survey.effect = TRUE)
+      save(fit.natl,
+           file = paste0(folder.name, '/',
+                         country, 
+                         '_rw2_natlBench.rda'))
+      
+      res.natl <- getSmoothed(inla_mod = fit.natl, 
+                              nsim = 1000, 
+                              draws = NULL,
+                              save.draws = TRUE,
+                              save.draws.est = TRUE)
+      save(res.natl, 
+           file = paste0(folder.name, '/',
+                         country, 
+                         '_res_rw2_natlBench.rda'))
+      
+      
+    }
+    
+  }
+  
+  
+  ##  Admin 1 ####
+  
+  if(doAdmin1){
+    
+    mod.dat$region <- mod.dat$admin1.char
+    mod.dat$strata <- NA
+    
+    ### HIV Adjustment ####
+    if(useHIVAdj){
+      load(paste0(hiv.dir.rel,
+                  '/HIVAdjustments.rda'),
+           envir = .GlobalEnv)
+      hiv.adj <- hiv.adj[hiv.adj$country == country,]
+      
+      if(unique(hiv.adj$area)[1] == country){
+        natl.unaids <- T
+      }else{
+        natl.unaids <- F
+      }
+      
+      if(natl.unaids){
+        adj.frame <- hiv.adj
+        adj.varnames <- c("country",
+                          "survey", "years")
+      }else{
+        adj.frame <- hiv.adj
+        
+        if(sum(grepl("HIVnames.key",
+                     list.files(paste0("./",folder.name)))) != 0){
+          load(paste0(folder.name, '/',
+                      country, '_HIVnames.key.rda'),
+               envir = .GlobalEnv)
+          mod.dat <- merge(mod.dat,
+                           HIVnames.key[,c("LONGNUM", "LATNUM", "dhs.name")],
+                           by = c("LONGNUM", "LATNUM"))
+          names(mod.dat)[which(names(mod.dat) == 'dhs.name')] <- "area"
+        }else if(country == "Kenya"){
+          area.tmp <- unlist(lapply(strsplit(mod.dat$strata, "[.]"),
+                                    function(x){x[1]}))
+          area.tmp <- strsplit(area.tmp, " ")
+          area.tmp <- unlist(lapply(area.tmp,
+                                    function(x){
+                                      n.upper <- length(x)
+                                      
+                                      for(i in 1:n.upper){
+                                        x[i] <- paste0(toupper(substring(x[i], 1,1)),
+                                                       substring(x[i],2))
+                                      }
+                                      
+                                      out <- paste0(x, collapse = "")
+                                      return(out)
+                                    }))
+          area.tmp[area.tmp == "Northeastern"] <- "NorthEastern"
+          mod.dat$area <- area.tmp
+        }else if(sum((admin1.names$GADM %in% hiv.adj$area)) != 0){
+          mod.dat$area <- mod.dat$admin1.name
+        }
+        
+        adj.varnames <- c("country", "area",
+                          "survey", "years")
+      }
+    }else{
+      adj.frame <- expand.grid(years = beg.year:end.year,
+                               country = country)
+      adj.frame$ratio <- 1
+      adj.varnames <- c("country", 
+                        "years")
+    }
+    
+    
+    ## random slopes + RW1xICAR ####
+    if (doRandomSlopesRW1) {
+      
+      bench.adj <- adj.frame
+      
+      if(!file.exists(paste0(folder.name, '/',
+                             country, '_rw2main_randomSlopes_rw1xICAR_admin1.rda')) | refit){
+        message(paste0("Starting unstratifed, admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        fit.admin1 <- smoothCluster(data = mod.dat,
+                                    Amat = admin1.mat,
+                                    family = "betabinomial",
+                                    overdisp.mean = -7.5,
+                                    overdisp.prec = 0.39,
+                                    year_label = beg.year:end.year,
+                                    time.model = 'rw2',
+                                    type.st = type.st,
+                                    st.time.model = 'rw1',
+                                    pc.st.slope.u = 1, 
+                                    pc.st.slope.alpha = 0.01,
+                                    bias.adj = bench.adj,
+                                    bias.adj.by = adj.varnames,
+                                    age.groups = levels(mod.dat$age),
+                                    age.n = c(1, 11, 12, 12, 12, 12),
+                                    age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                    verbose = FALSE,
+                                    survey.effect = TRUE)
+        
+        # options = list(config = TRUE, dic = TRUE, waic = TRUE, cpo = TRUE)
+        save(fit.admin1,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin1.rda'))
+      }else{
+        load(paste0(folder.name,
+                    '/', country,
+                    '_rw2main_randomSlopes_rw1xICAR_admin1.rda'),
+             envir = .GlobalEnv)
+      }
+      
+      hyperpar.table <- fit.admin1$fit$summary.hyperpar
+      save(hyperpar.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_hyperpar.rda'))
+      
+      temporals <- getDiag(fit.admin1, field = "time",
+                           year_label = beg.year:end.year)
+      save(temporals,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_temporals.rda'))
+      spaces <- getDiag(fit.admin1, field = "space",
+                        Amat = admin1.mat)
+      save(spaces,
+           file = paste0(folder.name, '/',
+                         country, '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_spatials.rda'))
+      spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                            year_label =  beg.year:end.year,
+                            Amat = admin1.mat)
+      save(spacetimes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_spatiotemporals.rda'))
+      
+      fixed.eff.table <- fit.admin1$fit$summary.fixed
+      save(fixed.eff.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_fixedeff.rda'))
+      
+      PosteriorInteractions <- fit.admin1$fit$summary.random$time.area
+      save(PosteriorInteractions,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_PosteriorInteractions.rda'))
+      
+      posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+      save(posteriorRandomSlopes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin1_noStrata_posteriorRandomSlopes.rda'))
+      
+      if(loadSamples & refit){
+        stop('loadSamples cannot be TRUE while refit = TRUE')
+      }else if(loadSamples & !refit){
+        load(paste0(folder.name, '/',
+                    country,
+                    '_res_rw2main_randomSlopes_rw1xICAR_admin1.rda'),
+             envir = .GlobalEnv)
+      }else if(!loadSamples){
+        res.admin1 <- getSmoothed(inla_mod = fit.admin1,
+                                  nsim = 1000,
+                                  save.draws.est = TRUE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+        save(res.admin1, 
+             file = paste0(folder.name, '/',
+                           country,
+                           '_res_rw2main_randomSlopes_rw1xICAR_admin1.rda'))
+      }
+      
+      ### Benchmarking ####
+      if(doBenchmark & !useHIVAdj){
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_rw1xICAR_admin1.rda'),
+                 envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin1,
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin1Benchmarks.rda'))
+          
+          fit.admin1 <- smoothCluster(data = mod.dat,
+                                      Amat = admin1.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',
+                                      type.st = type.st,
+                                      st.time.model = 'rw1',
+                                      pc.st.slope.u = 1, 
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin1, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'),
+               envir = .GlobalEnv)
+        }
+        
+        
+        hyperpar.table <- fit.admin1$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin1$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin1, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin1, field = "space",
+                          Amat = admin1.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_spatials.rda'))
+        spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin1.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin1$fit$summary.random$time.area
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench is TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'), 
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin1 <- getSmoothed(inla_mod = fit.admin1,
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin1, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'))
+        }
+        
+      }else if(doBenchmark & useHIVAdj){
+        
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_rw1xICAR_admin1.rda'),
+                 envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin1,
+                                  nsim = 1000, 
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws.est = TRUE,
+                                  save.draws = TRUE)
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          
+          save(bench.adj, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin1Benchmarks.rda'))
+          bench.adj <- merge(bench.adj, hiv.adj,
+                             by = c('country', 'years'),
+                             suffixes = c('.bench', '.hiv'))
+          bench.adj$ratio <- bench.adj$ratio.bench*bench.adj$ratio.hiv
+          
+          fit.admin1 <- smoothCluster(data = mod.dat,
+                                      Amat = admin1.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',
+                                      type.st = type.st,
+                                      st.time.model = 'rw1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj, 
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin1, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country,
+                      '_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'),
+               envir = .GlobalEnv) 
+        }
+        
+        hyperpar.table <- fit.admin1$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin1$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin1, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin1, field = "space",
+                          Amat = admin1.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, 
+                                   '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_spatials.rda'))
+        
+        spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin1.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin1$fit$summary.random$time.area
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench = TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'),
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin1 <- getSmoothed(inla_mod = fit.admin1, 
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin1,
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_rw1xICAR_admin1Bench.rda'))
+        }
+      }
+      
+    }
+    
+    
+    ## random slopes + AR1 x ICAR ####
+    if (doRandomSlopesAR1) {
+      
+      bench.adj <- adj.frame
+      if(!file.exists(paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin1.rda')) | refit){
+        message(paste0("Starting unstratifed, admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        fit.admin1 <- smoothCluster(data = mod.dat, 
+                                    Amat = admin1.mat,
+                                    family = "betabinomial",
+                                    overdisp.mean = -7.5,
+                                    overdisp.prec = 0.39,
+                                    year_label = beg.year:end.year,
+                                    time.model = 'rw2',
+                                    type.st = type.st,
+                                    st.time.model = 'ar1',
+                                    pc.st.slope.u = 1,
+                                    pc.st.slope.alpha = 0.01,
+                                    bias.adj = bench.adj,
+                                    bias.adj.by = adj.varnames,
+                                    age.groups = levels(mod.dat$age),
+                                    age.n = c(1, 11, 12, 12, 12, 12),
+                                    age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                    verbose = FALSE,
+                                    survey.effect = TRUE)
+        save(fit.admin1,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin1.rda'))
+      }else{
+        load(paste0(folder.name, '/', 
+                    country,
+                    '_rw2main_randomSlopes_ar1xICAR_admin1.rda'),
+             envir = .GlobalEnv)
+      }
+      
+      hyperpar.table <- fit.admin1$fit$summary.hyperpar
+      save(hyperpar.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_hyperpar.rda'))
+      
+      temporals <- getDiag(fit.admin1, field = "time",
+                           year_label = beg.year:end.year)
+      save(temporals,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_temporals.rda'))
+      spaces <- getDiag(fit.admin1, field = "space",
+                        Amat = admin1.mat)
+      save(spaces,
+           file = paste0(folder.name, '/',
+                         country, '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_spatials.rda'))
+      spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                            year_label =  beg.year:end.year,
+                            Amat = admin1.mat)
+      save(spacetimes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_spatiotemporals.rda'))
+      
+      fixed.eff.table <- fit.admin1$fit$summary.fixed
+      save(fixed.eff.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_fixedeff.rda'))
+      
+      PosteriorInteractions <- fit.admin1$fit$summary.random$region.int
+      save(PosteriorInteractions,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_PosteriorInteractions.rda'))
+      
+      posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+      save(posteriorRandomSlopes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin1_noStrata_posteriorRandomSlopes.rda'))
+      
+      if(loadSamples & refit){
+        stop('loadSamples cannot be TRUE while refit = TRUE')
+      }else if(loadSamples & !refit){
+        load(paste0(folder.name, '/',
+                    country,
+                    '_res_rw2main_randomSlopes_ar1xICAR_admin1.rda'), 
+             envir = .GlobalEnv)
+      }else if(!loadSamples){
+        res.admin1 <- getSmoothed(inla_mod = fit.admin1,
+                                  nsim = 1000,
+                                  save.draws.est = TRUE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+        save(res.admin1, 
+             file = paste0(folder.name, '/',
+                           country,
+                           '_res_rw2main_randomSlopes_ar1xICAR_admin1.rda'))
+      }
+      
+      ### Benchmarking ####
+      
+      if(doBenchmark & !useHIVAdj){
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_ar1xICAR_admin1.rda'), 
+                 envir = .GlobalEnv)
+          }
+          
+          res.natl <- getSmoothed(inla_mod = fit.admin1,
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin1Benchmarks.rda'))
+          
+          fit.admin1 <- smoothCluster(data = mod.dat,
+                                      Amat = admin1.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',      
+                                      type.st = type.st,
+                                      st.time.model = 'ar1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin1,
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'),
+               envir = .GlobalEnv)
+        }
+        
+        
+        hyperpar.table <- fit.admin1$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin1$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin1, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin1, field = "space",
+                          Amat = admin1.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_spatials.rda'))
+        spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin1.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin1$fit$summary.random$region.int
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench is TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'), 
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin1 <- getSmoothed(inla_mod = fit.admin1,
+                                    nsim = 1000, 
+                                    save.draws.est = TRUE,
+                                    draws = NULL,
+                                    save.draws = TRUE)
+          save(res.admin1, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_res_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'))
+        }
+        
+      }
+      else if(doBenchmark & useHIVAdj){
+        
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country, '_rw2main_randomSlopes_ar1xICAR_admin1.rda'), envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin1, 
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }          
+          }
+          
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin1Benchmarks.rda'))
+          
+          bench.adj <- merge(bench.adj, hiv.adj,
+                             by = c('country', 'years'),
+                             suffixes = c('.bench', '.hiv'))
+          bench.adj$ratio <- bench.adj$ratio.bench*bench.adj$ratio.hiv
+          
+          fit.admin1 <- smoothCluster(data = mod.dat,
+                                      Amat = admin1.mat, 
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',     
+                                      type.st = type.st,
+                                      st.time.model = 'ar1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin1,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country,
+                      '_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'), 
+               envir = .GlobalEnv) 
+        }
+        
+        hyperpar.table <- fit.admin1$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin1$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin1, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin1, field = "space",
+                          Amat = admin1.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, 
+                                   '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_spatials.rda'))
+        
+        spacetimes <- getDiag(fit.admin1, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin1.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin1$fit$summary.random$region.int
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin1$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin1Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench = TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_res_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'),
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin1 <- getSmoothed(inla_mod = fit.admin1, 
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin1, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_ar1xICAR_admin1Bench.rda'))
+        }
+      }
+      
+    }
+    
+    rm(fit.admin1)
+    
+  }
+  
+  ##  Admin 2 ####
+  
+  if(doAdmin2){
+    
+    mod.dat$region <- mod.dat$admin2.char
+    mod.dat$strata <- NA
+    
+    ### HIV Adjustment ####
+    if(useHIVAdj){
+      load(paste0(hiv.dir.rel,'/HIVAdjustments.rda'), envir = .GlobalEnv)
+      hiv.adj <- hiv.adj[hiv.adj$country == country,]
+      if(unique(hiv.adj$area)[1] == country){
+        natl.unaids <- T
+      }else{
+        natl.unaids <- F
+      }
+      
+      if(natl.unaids){
+        adj.frame <- hiv.adj
+        adj.varnames <- c("country", "survey", "years")
+      }else{
+        adj.frame <- hiv.adj
+        
+        if(sum(grepl("HIVnames.key", list.files(paste0("./",folder.name)))) != 0){
+          load(paste0(folder.name, '/', country, '_HIVnames.key.rda'),
+               envir = .GlobalEnv)
+          mod.dat <- merge(mod.dat,
+                           HIVnames.key[,c("LONGNUM", "LATNUM", "dhs.name")],
+                           by = c("LONGNUM", "LATNUM"))
+          names(mod.dat)[which(names(mod.dat) == 'dhs.name')] <- "area"
+        }else if(sum(!(admin1.names$GADM %in% hiv.adj$area)) != 0){
+          mod.dat$area <- mod.dat$admin1.name
+        }
+        
+        adj.varnames <- c("country", "survey", "years", "area")
+      }
+    }else{
+      adj.frame <- expand.grid(years = beg.year:end.year,
+                               country = country)
+      adj.frame$ratio <- 1
+      adj.varnames <- c("country", "years")
+    }
+    
+    
+    ## random slopes + RW1xICAR ####
+    if (doRandomSlopesRW1) {
+      
+      bench.adj <- adj.frame
+      
+      if(!file.exists(paste0(folder.name, '/',
+                             country, '_rw2main_randomSlopes_rw1xICAR_admin2.rda')) | refit){
+        message(paste0("Starting unstratifed, admin 2 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        fit.admin2 <- smoothCluster(data = mod.dat,
+                                    Amat = admin2.mat,
+                                    family = "betabinomial",
+                                    overdisp.mean = -7.5,
+                                    overdisp.prec = 0.39,
+                                    year_label = beg.year:end.year,
+                                    time.model = 'rw2',
+                                    type.st = type.st,
+                                    st.time.model = 'rw1',
+                                    pc.st.slope.u = 1, 
+                                    pc.st.slope.alpha = 0.01,
+                                    bias.adj = bench.adj,
+                                    bias.adj.by = adj.varnames,
+                                    age.groups = levels(mod.dat$age),
+                                    age.n = c(1, 11, 12, 12, 12, 12),
+                                    age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                    verbose = FALSE,
+                                    survey.effect = TRUE)
+        
+        # options = list(config = TRUE, dic = TRUE, waic = TRUE, cpo = TRUE)
+        save(fit.admin2,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin2.rda'))
+      }else{
+        load(paste0(folder.name,
+                    '/', country,
+                    '_rw2main_randomSlopes_rw1xICAR_admin2.rda'),
+             envir = .GlobalEnv)
+      }
+      
+      hyperpar.table <- fit.admin2$fit$summary.hyperpar
+      save(hyperpar.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_hyperpar.rda'))
+      
+      temporals <- getDiag(fit.admin2, field = "time",
+                           year_label = beg.year:end.year)
+      save(temporals,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_temporals.rda'))
+      spaces <- getDiag(fit.admin2, field = "space",
+                        Amat = admin2.mat)
+      save(spaces,
+           file = paste0(folder.name, '/',
+                         country, '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_spatials.rda'))
+      spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                            year_label =  beg.year:end.year,
+                            Amat = admin2.mat)
+      save(spacetimes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_spatiotemporals.rda'))
+      
+      fixed.eff.table <- fit.admin2$fit$summary.fixed
+      save(fixed.eff.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_fixedeff.rda'))
+      
+      PosteriorInteractions <- fit.admin2$fit$summary.random$time.area
+      save(PosteriorInteractions,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_PosteriorInteractions.rda'))
+      
+      posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+      save(posteriorRandomSlopes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_rw1xICAR_admin2_noStrata_posteriorRandomSlopes.rda'))
+      
+      if(loadSamples & refit){
+        stop('loadSamples cannot be TRUE while refit = TRUE')
+      }else if(loadSamples & !refit){
+        load(paste0(folder.name, '/',
+                    country,
+                    '_res_rw2main_randomSlopes_rw1xICAR_admin2.rda'),
+             envir = .GlobalEnv)
+      }else if(!loadSamples){
+        res.admin2 <- getSmoothed(inla_mod = fit.admin2,
+                                  nsim = 1000,
+                                  save.draws.est = TRUE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+        save(res.admin2, 
+             file = paste0(folder.name, '/',
+                           country,
+                           '_res_rw2main_randomSlopes_rw1xICAR_admin2.rda'))
+      }
+      
+      ### Benchmarking ####
+      if(doBenchmark & !useHIVAdj){
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_rw1xICAR_admin2.rda'),
+                 envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin2,
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin2Benchmarks.rda'))
+          
+          fit.admin2 <- smoothCluster(data = mod.dat,
+                                      Amat = admin2.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',
+                                      type.st = type.st,
+                                      st.time.model = 'rw1',
+                                      pc.st.slope.u = 1, 
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin2, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'),
+               envir = .GlobalEnv)
+        }
+        
+        
+        hyperpar.table <- fit.admin2$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin2$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin2, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin2, field = "space",
+                          Amat = admin2.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_spatials.rda'))
+        spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin2.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin2$fit$summary.random$time.area
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench is TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'), 
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin2 <- getSmoothed(inla_mod = fit.admin2,
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin2, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'))
+        }
+        
+      }else if(doBenchmark & useHIVAdj){
+        
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "RW1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_rw1xICAR_admin2.rda'),
+                 envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin2,
+                                  nsim = 1000, 
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws.est = TRUE,
+                                  save.draws = TRUE)
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          
+          save(bench.adj, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin2Benchmarks.rda'))
+          bench.adj <- merge(bench.adj, hiv.adj,
+                             by = c('country', 'years'),
+                             suffixes = c('.bench', '.hiv'))
+          bench.adj$ratio <- bench.adj$ratio.bench*bench.adj$ratio.hiv
+          
+          fit.admin2 <- smoothCluster(data = mod.dat,
+                                      Amat = admin2.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',
+                                      type.st = type.st,
+                                      st.time.model = 'rw1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj, 
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin2, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country,
+                      '_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'),
+               envir = .GlobalEnv) 
+        }
+        
+        hyperpar.table <- fit.admin2$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin2$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin2, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin2, field = "space",
+                          Amat = admin2.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, 
+                                   '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_spatials.rda'))
+        
+        spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin2.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin2$fit$summary.random$time.area
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_rw1xICAR_admin2Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench = TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'),
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin2 <- getSmoothed(inla_mod = fit.admin2, 
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin2,
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_rw1xICAR_admin2Bench.rda'))
+        }
+      }
+      
+    }
+    
+    ## random slopes + AR1 x ICAR ####
+    if (doRandomSlopesAR1) {
+      
+      bench.adj <- adj.frame
+      if(!file.exists(paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin2.rda')) | refit){
+        message(paste0("Starting unstratifed, admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        fit.admin2 <- smoothCluster(data = mod.dat, 
+                                    Amat = admin2.mat,
+                                    family = "betabinomial",
+                                    overdisp.mean = -7.5,
+                                    overdisp.prec = 0.39,
+                                    year_label = beg.year:end.year,
+                                    time.model = 'rw2',
+                                    type.st = type.st,
+                                    st.time.model = 'ar1',
+                                    pc.st.slope.u = 1,
+                                    pc.st.slope.alpha = 0.01,
+                                    bias.adj = bench.adj,
+                                    bias.adj.by = adj.varnames,
+                                    age.groups = levels(mod.dat$age),
+                                    age.n = c(1, 11, 12, 12, 12, 12),
+                                    age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                    verbose = FALSE,
+                                    survey.effect = TRUE)
+        save(fit.admin2,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin2.rda'))
+      }else{
+        load(paste0(folder.name, '/', 
+                    country,
+                    '_rw2main_randomSlopes_ar1xICAR_admin2.rda'),
+             envir = .GlobalEnv)
+      }
+      
+      hyperpar.table <- fit.admin2$fit$summary.hyperpar
+      save(hyperpar.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_hyperpar.rda'))
+      
+      temporals <- getDiag(fit.admin2, field = "time",
+                           year_label = beg.year:end.year)
+      save(temporals,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_temporals.rda'))
+      spaces <- getDiag(fit.admin2, field = "space",
+                        Amat = admin2.mat)
+      save(spaces,
+           file = paste0(folder.name, '/',
+                         country, '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_spatials.rda'))
+      spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                            year_label =  beg.year:end.year,
+                            Amat = admin2.mat)
+      save(spacetimes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_spatiotemporals.rda'))
+      
+      fixed.eff.table <- fit.admin2$fit$summary.fixed
+      save(fixed.eff.table,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_fixedeff.rda'))
+      
+      PosteriorInteractions <- fit.admin2$fit$summary.random$region.int
+      save(PosteriorInteractions,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_PosteriorInteractions.rda'))
+      
+      posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+      save(posteriorRandomSlopes,
+           file = paste0(folder.name, '/',
+                         country,
+                         '_rw2main_randomSlopes_ar1xICAR_admin2_noStrata_posteriorRandomSlopes.rda'))
+      
+      if(loadSamples & refit){
+        stop('loadSamples cannot be TRUE while refit = TRUE')
+      }else if(loadSamples & !refit){
+        load(paste0(folder.name, '/',
+                    country,
+                    '_res_rw2main_randomSlopes_ar1xICAR_admin2.rda'), 
+             envir = .GlobalEnv)
+      }else if(!loadSamples){
+        res.admin2 <- getSmoothed(inla_mod = fit.admin2,
+                                  nsim = 1000,
+                                  save.draws.est = TRUE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+        save(res.admin2, 
+             file = paste0(folder.name, '/',
+                           country,
+                           '_res_rw2main_randomSlopes_ar1xICAR_admin2.rda'))
+      }
+      
+      ### Benchmarking ####
+      
+      if(doBenchmark & !useHIVAdj){
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country,
+                        '_rw2main_randomSlopes_ar1xICAR_admin2.rda'), 
+                 envir = .GlobalEnv)
+          }
+          
+          res.natl <- getSmoothed(inla_mod = fit.admin2,
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }         
+          }
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin2Benchmarks.rda'))
+          
+          fit.admin2 <- smoothCluster(data = mod.dat,
+                                      Amat = admin2.mat,
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',      
+                                      type.st = type.st,
+                                      st.time.model = 'ar1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin2,
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'),
+               envir = .GlobalEnv)
+        }
+        
+        
+        hyperpar.table <- fit.admin2$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin2$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin2, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin2, field = "space",
+                          Amat = admin2.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_spatials.rda'))
+        spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin2.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin2$fit$summary.random$region.int
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench is TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country,
+                      '_res_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'), 
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin2 <- getSmoothed(inla_mod = fit.admin2,
+                                    nsim = 1000, 
+                                    save.draws.est = TRUE,
+                                    draws = NULL,
+                                    save.draws = TRUE)
+          save(res.admin2, 
+               file = paste0(folder.name, '/',
+                             country,
+                             '_res_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'))
+        }
+        
+      }
+      else if(doBenchmark & useHIVAdj){
+        
+        message(paste0("Starting unstratifed, benchmarked admin 1 model \n",
+                       "with random slopes in time and a \n",
+                       "AR1xICAR Type IV interaction for ", country, ".\n"))
+        
+        if(refitBench){
+          if(!refit){
+            load(paste0(folder.name, '/',
+                        country, '_rw2main_randomSlopes_ar1xICAR_admin2.rda'), envir = .GlobalEnv)
+          }
+          res.natl <- getSmoothed(inla_mod = fit.admin2, 
+                                  nsim = 1000, 
+                                  save.draws.est = TRUE,
+                                  include_subnational = FALSE,
+                                  draws = NULL,
+                                  save.draws = TRUE)
+          
+          bench.adj <- expand.grid(country = country,
+                                   years = beg.year:end.year)
+          bench.adj$est <- bench.adj$igme <- NA
+          
+          for(i in 1:nrow(bench.adj)){
+            yr <- bench.adj$years[i]
+            bench.adj$est[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            
+            if(yr %in% beg.year:max(mod.dat$year)){
+              bench.adj$igme[i] <- igme.ests$OBS_VALUE[igme.ests$year == yr]/1000
+            }else{
+              bench.adj$igme[i] <- res.natl$overall$median[res.natl$overall$years.num == yr]
+            }          
+          }
+          
+          bench.adj$ratio <- bench.adj$est/bench.adj$igme
+          
+          save(bench.adj,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin2Benchmarks.rda'))
+          
+          bench.adj <- merge(bench.adj, hiv.adj,
+                             by = c('country', 'years'),
+                             suffixes = c('.bench', '.hiv'))
+          bench.adj$ratio <- bench.adj$ratio.bench*bench.adj$ratio.hiv
+          
+          fit.admin2 <- smoothCluster(data = mod.dat,
+                                      Amat = admin2.mat, 
+                                      family = "betabinomial",
+                                      overdisp.mean = -7.5,
+                                      overdisp.prec = 0.39,
+                                      year_label = beg.year:end.year,
+                                      time.model = 'rw2',     
+                                      type.st = type.st,
+                                      st.time.model = 'ar1',
+                                      pc.st.slope.u = 1,
+                                      pc.st.slope.alpha = 0.01,
+                                      bias.adj = bench.adj,
+                                      bias.adj.by = adj.varnames,
+                                      age.groups = levels(mod.dat$age),
+                                      age.n = c(1, 11, 12, 12, 12, 12),
+                                      age.rw.group = c(1, 2, 3, 3, 3, 3),
+                                      verbose = FALSE,
+                                      survey.effect = TRUE)
+          save(fit.admin2,
+               file = paste0(folder.name, '/',
+                             country,
+                             '_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'))
+        }else{
+          load(paste0(folder.name, '/',
+                      country,
+                      '_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'), 
+               envir = .GlobalEnv) 
+        }
+        
+        hyperpar.table <- fit.admin2$fit$summary.hyperpar
+        save(hyperpar.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_hyperpar.rda'))
+        
+        fixed.eff.table <- fit.admin2$fit$summary.fixed
+        save(fixed.eff.table,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_fixedeff.rda'))
+        
+        
+        temporals <- getDiag(fit.admin2, field = "time",
+                             year_label = beg.year:end.year)
+        save(temporals,
+             file = paste0(folder.name, '/', 
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_temporals.rda'))
+        spaces <- getDiag(fit.admin2, field = "space",
+                          Amat = admin2.mat)
+        save(spaces, file = paste0(folder.name, '/',
+                                   country, 
+                                   '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_spatials.rda'))
+        
+        spacetimes <- getDiag(fit.admin2, field = "spacetime",
+                              year_label =  beg.year:end.year,
+                              Amat = admin2.mat)
+        save(spacetimes,
+             file = paste0(folder.name, '/',
+                           country, 
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_spatiotemporals.rda'))
+        
+        PosteriorInteractions <- fit.admin2$fit$summary.random$region.int
+        save(PosteriorInteractions,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_PosteriorInteractions.rda'))
+        
+        posteriorRandomSlopes <- fit.admin2$fit$summary.random$st.slope
+        save(posteriorRandomSlopes,
+             file = paste0(folder.name, '/',
+                           country,
+                           '_rw2main_randomSlopes_ar1xICAR_admin2Bench_noStrata_posteriorRandomSlopes.rda'))
+        
+        
+        if(loadSamples & refitBench){
+          stop('loadSamples cannot be TRUE while refitBench = TRUE')
+        }else if(loadSamples & !refitBench){
+          load(paste0(folder.name, '/',
+                      country, 
+                      '_res_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'),
+               envir = .GlobalEnv)
+        }else if(!loadSamples){
+          res.admin2 <- getSmoothed(inla_mod = fit.admin2, 
+                                    nsim = 1000, 
+                                    draws = NULL, 
+                                    save.draws = TRUE,
+                                    save.draws.est = TRUE)
+          save(res.admin2, 
+               file = paste0(folder.name, '/',
+                             country, 
+                             '_res_rw2main_randomSlopes_ar1xICAR_admin2Bench.rda'))
+        }
+      }
+      
+    }
+    
+    rm(fit.admin2)
+    
+    
+  }
+  
+}  
+
+
+## Function call ####
+
+ptm <- proc.time()
+fitBetabin(country, 
+           type.st = type.st,
+           beg.year = beg.year,
+           end.year = end.year,
+           doNatl = doNatl,
+           doAdmin1= doAdmin1,
+           doAdmin2 = doAdmin2,
+           refit = refit,
+           refitBench = refitBench,
+           loadSamples = loadSamples,
+           doRandomSlopesRW1 = doRandomSlopesRW1,
+           doRandomSlopesAR1 = doRandomSlopesAR1,
+           doBenchmark = doBenchmark,
+	   data.dir = data.dir,
+           code.dir.rel = code.dir.rel,
+           igme.dir.rel = igme.dir.rel,
+#           hand.dir.rel = hand.dir.rel,
+           shapes.sub.dir = shapes.sub.dir,
+           hiv.dir.rel = hiv.dir.rel,
+           usingGoogleSheets = usingGoogleSheets)
+proc.time()-ptm
