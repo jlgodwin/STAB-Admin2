@@ -1,0 +1,254 @@
+\PassOptionsToPackage{unicode=true}{hyperref} % options for packages loaded elsewhere
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provides euro and other symbols
+\else % if luatex or xelatex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage[]{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\usepackage{hyperref}
+\hypersetup{
+            pdftitle={Country Summary: Pakistan},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+% set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+
+\usepackage{pdfpages}
+
+\title{Country Summary: Pakistan}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\hypertarget{intro}{%
+\section{Intro}\label{intro}}
+
+These estimates are created using the BB8 model with Admin 1 estimates
+using a RW1xICAR interaction model with area-specific random slopes.
+
+\par
+
+Pakistan has 8 Admin 1 areas.
+
+\par
+
+All uncertainty intervals displayed in subsequent figures are 95\%
+intervals.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/ShapeCheck/Pakistan_adm1_neighb.pdf}
+\includegraphics[width=3.5in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/ShapeCheck/Pakistan_Admin1Names.pdf}
+\caption{Top: The neighborhood structure of Admin 1 areas. Bottom: The names of Admin 1 areas.}
+\end{figure}
+\clearpage
+
+\begin{figure}
+\centering
+\includegraphics[width=5in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/map/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_2019_median.pdf}
+\caption{Median estimates of U5MR (deaths per 1000 children) in 2019.}
+\end{figure}
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/measure/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_Y2019_K2_measuremap.pdf}
+\includegraphics[width=3.5in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/measure/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_Y2019_K3_measuremap.pdf}
+\caption{Expression of uncertainty of U5MR (deaths per 1000 children) based on the average true classification probability (ATCP) in 2019.}
+\end{figure}
+\clearpage
+
+\begin{figure}
+\centering
+\includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/map/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_19902019_median.pdf}
+\caption{Median estimates for selected years.}
+\end{figure}
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2_frame_natlBench_oddsU5MR.pdf}
+    \caption{Ratio of odds of Rural U5MR to odds of Urban U5MR, by sampling frame.}
+\end{figure}
+\clearpage
+
+\includepdf[pages={-}]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1Bench_spaghetti_allByMedian.pdf}
+
+\begin{figure}
+\centering
+\includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/ridge/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_2019_ridgeplot.pdf}
+\caption{Posterior distributions of U5MR (deaths per 1000 children) in 2019. Areas are ordered by median estimated U5MR in 2019.}
+\end{figure}
+\clearpage
+\begin{figure}
+\centering
+\includegraphics[height=10in]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/map/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1_NotStrat_median.pdf}
+\caption{Posterior medians of U5MR (deaths per 1000 births) by Admin 1 area and year.}
+\end{figure}
+\clearpage
+
+\hypertarget{national-survey-data}{%
+\section{National Survey Data}\label{national-survey-data}}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{cccc}
+  \hline
+Survey & Urban & Rural & Total \\ 
+  \hline
+2006-07 & 384 & 571 & 955 \\ 
+  2017-18 & 282 & 278 & 560 \\ 
+   \hline
+\end{tabular}
+\caption{Number of clusters by urban/rural designation by survey for Pakistan.} 
+\end{table}
+\begin{table}[!ht]
+\centering
+\begin{tabular}{ccc}
+  \hline
+Age & No. Deaths & No. Agemonths \\ 
+  \hline
+0 & 2098 & 49782 \\ 
+  1-11 & 958 & 504359 \\ 
+  12-23 & 267 & 518735 \\ 
+  24-35 & 97 & 490437 \\ 
+  36-47 & 49 & 461608 \\ 
+  48-59 & 33 & 432843 \\ 
+   \hline
+\end{tabular}
+\caption{Numbers of agemonths and deaths by age for DHS 2017-18.} 
+\end{table}
+\begin{table}[!ht]
+\centering
+\begin{tabular}{ccc}
+  \hline
+Age & No. Deaths & No. Agemonths \\ 
+  \hline
+0 & 1681 & 29692 \\ 
+  1-11 & 746 & 298326 \\ 
+  12-23 & 185 & 314447 \\ 
+  24-35 & 88 & 306293 \\ 
+  36-47 & 41 & 294704 \\ 
+  48-59 & 43 & 284246 \\ 
+   \hline
+\end{tabular}
+\caption{Numbers of agemonths and deaths by age for DHS 2006-07.} 
+\end{table}
+
+\clearpage
+
+\hypertarget{admin-1-figures}{%
+\section{Admin 1 Figures}\label{admin-1-figures}}
+
+The following few pages have estimates by area across time with
+underlying data included. There are six admin areas per page, they are
+ordered by increasing median U5MR in the year 2019. Colored lines with
+circular points and light grey uncertainty bands are 5-year
+survey-weighted estimates of U5MR for years 1990--1994 up to 2015--2019
+depending on survey timing. For a survey that ends in the middle of a
+5-year period, we plot the estimates at the mid-point of the years in
+that interval for which the survey provides data. Black lines and
+corresponding intervals represent posterior medians and 95\% uncertainty
+intervals respectively for the betabinomial model. IHME's estimates and
+corresponding intervals, where we can compare, are in aquamarine.
+
+\includepdf[pages=-]{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2main_randomSlopes_rw1xICAR_admin1Bench_noStrata_spaghetti_noIHME_6per.pdf}
+
+\hypertarget{national-figures-and-results}{%
+\section{National Figures and
+Results}\label{national-figures-and-results}}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{l|cc|cc}
+  \hline
+ & Median & Interval & Median- Bench & Interval \\ 
+  \hline
+0 & 47.20 & (45.1,49.3) & 57.00 & (54.6,59.6) \\ 
+  1-11 & 2.00 & (1.9,2.2) & 2.50 & (2.3,2.6) \\ 
+  12-23 & 0.50 & (0.5,0.6) & 0.70 & (0.6,0.7) \\ 
+  24-35 & 0.20 & (0.2,0.3) & 0.30 & (0.2,0.3) \\ 
+  36-47 & 0.10 & (0.1,0.1) & 0.10 & (0.1,0.2) \\ 
+  48-59 & 0.10 & (0.1,0.1) & 0.10 & (0.1,0.2) \\ 
+   \hline
+\end{tabular}
+\caption{Monthly hazards in terms of 1000 children by age band for national, unstratified model for Pakistan.} 
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2_natlBenchmarks.pdf}
+    \caption{Benchmark offsets: $
+\mbox{BENCH}(t) = \mbox{U5MR}^\star(t)/\mbox{U5MR}(t)$ 
+ where $\mbox{U5MR}^\star(t)$ is modeled estimate and  $\mbox{U5MR}(t)
+$ is UN-IGME estimate.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2_natlBench_temporal.pdf}
+    \caption{Monthly hazards of death in terms of U5MR (number deaths per 1000 children) by agebands.}
+\end{figure}
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics{/Users/austin/Dropbox/AfricaAdmin2Estimates/Data/countryDataFolders/Pakistan/Plots/Betabinomial/Pakistan_rw2_natlBench_noStrata_spaghetti.pdf}
+    \caption{Benchmarked U5MR rates per 1000 live births. Top: DHS direct estimates with national trends from IHME GBD, UN-IGME, Smoothed Direct and Betabinomial estimates. Middle: 95\% uncertainty intervals for DHS data. Bottom: IHME GBD, UN-IGME, Smoothed Direct and Betabinomial estimates with for the unstratified model. 95\% uncertainty intervals}
+\end{figure}
+\clearpage
+
+\end{document}
